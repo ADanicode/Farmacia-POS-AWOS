@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (¡CRÍTICO!)
+.env
+
+# Archivos de compilación
+dist/
+build/
+
+# Credenciales de Firebase (si se te escapa algún JSON)
+*.json
+!package.json
+!tsconfig.json
+
+# Logs
+npm-debug.log*
+logs/
