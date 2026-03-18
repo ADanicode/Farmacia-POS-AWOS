@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express'; // FIX 1: Importar Request y Response
+import { Router, Request, Response } from 'express';
 import { VentasController } from '@interfaces/controllers/VentasController';
 import { VentaService } from '@application/services/VentaService';
 import { ReporteService } from '@application/services/ReporteService';
@@ -12,25 +12,37 @@ export function createVentasRoutes(
 ): Router {
   const router = Router();
   
-  // FIX 2: Pasar los 3 argumentos en orden
   const ventasController = new VentasController(
     ventaService,
     reporteService,
     authService
   );
 
+  /**
+   * POST /api/ventas/procesar
+   * IMPORTANTE: requireAuth necesita recibir el authService para validar el token
+   */
   router.post(
     '/procesar',
-    requireAuth,
-    // FIX 3: Si marca error con [], quita los corchetes: requirePermissions('crear_venta')
-    requirePermissions('crear_venta'),
-    (req: Request, res: Response) => ventasController.procesar(req, res), // FIX 4: Tipar req y res
+    requireAuth(authService), // ✅ FIX: Invocar con el servicio
+  requirePermissions('crear_venta'), // ✅ FIX: Pasar como array si así lo espera el middleware
+    (req: Request, res: Response) => ventasController.procesar(req, res),
   );
 
+  // En createVentasRoutes...
+router.get(
+  '/reporte/turno',
+  requireAuth(authService),
+  (req, res) => ventasController.obtenerReporteTurno(req, res)
+);
+
+  /**
+   * GET /api/ventas/:ventaId
+   */
   router.get(
     '/:ventaId',
-    requireAuth,
-    (req: Request, res: Response) => ventasController.obtener(req, res), // FIX 4: Tipar req y res
+    requireAuth(authService), // ✅ FIX: Invocar con el servicio
+    (req: Request, res: Response) => ventasController.obtener(req, res),
   );
 
   return router;
