@@ -137,7 +137,7 @@ export const CreateVentaSchema = z
     (data: any) => {
       const lineas = data.lineas as LineaVentaDTO[];
       const pagos = data.pagos as PagoDTO[];
-      const ivaPercentaje = (data.ivaPercentaje as number) || 19;
+      const ivaPercentaje = (data.ivaPercentaje as number) || 16;
 
       const subtotal = lineas.reduce(
         (sum: number, linea: LineaVentaDTO) =>

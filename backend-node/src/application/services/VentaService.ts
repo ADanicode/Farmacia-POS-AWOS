@@ -1,6 +1,6 @@
 /**
  * @fileoverview VentaService - Servicio de Orquestación de Ventas
- * Implementa el Saga Pattern con BYPASS TEMPORAL de Python para desarrollo.
+ * Implementa el Saga Pattern completo con Python (HU-29, HU-40)
  */
 
 import { Venta, LineaVenta, Pago, TipoPago, DatosReceta } from '@domain/entities/Venta';
@@ -46,24 +46,27 @@ export class VentaService {
     private readonly inventoryProvider: IInventoryProvider,
   ) {}
 
-  /**
-   * Crea una nueva venta (HU-28, HU-29)
-   * NOTA: Se ha desactivado temporalmente la conexión con Python para evitar Timeouts en YaRC.
-   */
   public async crearVenta(
     usuario: Usuario,
     createVentaDTO: CreateVentaDTO,
   ): Promise<Venta> {
-    
-    // 1. VALIDACIÓN Y PREPARACIÓN
+
     const ventaValidada = validarCreateVentaDTO(createVentaDTO);
     const ventaId = `V${Date.now()}${Math.random().toString(36).substring(2, 11)}`.toUpperCase();
 
-    console.log(`\x1b[36m%s\x1b[0m`, `[VentaService] ⚡ Procesando venta ${ventaId} para ${usuario.getNombre()}`);
+    console.log(`[VentaService] ⚡ Procesando venta ${ventaId} para ${usuario.getNombre()}`);
 
     try {
+      // 1. CONSTRUIR ENTIDAD VENTA
       const lineas = ventaValidada.lineas.map(
-        (l) => new LineaVenta(l.codigoProducto, l.nombreProducto, l.cantidad, l.precioUnitario, l.esControlado, l.lote)
+        (l) => new LineaVenta(
+          l.codigoProducto,
+          l.nombreProducto,
+          l.cantidad,
+          l.precioUnitario,
+          l.esControlado,
+          l.lote,
+        )
       );
 
       const pagos = ventaValidada.pagos.map(
@@ -79,37 +82,69 @@ export class VentaService {
         );
       }
 
-      const venta = Venta.crear(ventaId, usuario.getId(), lineas, pagos, ventaValidada.ivaPercentaje, datosReceta);
+      const venta = Venta.crear(
+        ventaId,
+        usuario.getId(),
+        lineas,
+        pagos,
+        ventaValidada.ivaPercentaje,
+        datosReceta,
+      );
 
       // ============================================================
-      // ⚠️ PASO 2: DESCONTAR STOCK EN PYTHON (BYPASS ACTIVO)
+      // SAGA STEP 1: DESCONTAR STOCK EN PYTHON (HU-29, HU-40)
       // ============================================================
-      console.log(`\x1b[33m%s\x1b[0m`, `[VentaService] 🚧 MODO DESARROLLO: Saltando conexión con Python...`);
-      
-      /* // Comentado para evitar que YaRC se quede cargando infinitamente
+      console.log(`[VentaService] 📦 SAGA STEP 1: Descontando stock en Python...`);
+
       const lineasDescontar = MapperLineaDescontar.fromLineasVenta(venta.getLineas());
-      await this.inventoryProvider.descontarStock(ventaId, lineasDescontar);
-      */
+
+      let resultadoDescuento: any;
+      try {
+        resultadoDescuento = await this.inventoryProvider.descontarStock(ventaId, lineasDescontar);
+        console.log(`[VentaService] ✅ Stock descontado en Python:`, JSON.stringify(resultadoDescuento));
+      } catch (errorStock: any) {
+        // Si Python rechaza por stock insuficiente, abortar sin guardar en Firestore
+        console.error(`[VentaService] ❌ Error en descuento de stock: ${errorStock.message}`);
+        if (errorStock.message?.toLowerCase().includes('stock insuficiente')) {
+          throw new StockInsuficienteError({ mensaje: errorStock.message });
+        }
+        throw new VentaServiceError(
+          `Error al descontar stock: ${errorStock.message}`,
+          'STOCK_ERROR',
+        );
+      }
 
       // ============================================================
-      // PASO 3: PERSISTIR EN FIRESTORE (SAGA STEP 2)
+      // SAGA STEP 2: PERSISTIR EN FIRESTORE
       // ============================================================
-      console.log(`[VentaService] Guardando en Firestore colección 'tickets_ventas'...`);
+      console.log(`[VentaService] 🔥 SAGA STEP 2: Guardando en Firestore...`);
 
       let ventaPersistida: Venta;
       try {
         ventaPersistida = await this.ventaRepository.crear(venta);
-        console.log(`\x1b[32m%s\x1b[0m`, `[VentaService] ✅ ÉXITO: Venta ${ventaId} guardada.`);
+        console.log(`[VentaService] ✅ Venta ${ventaId} guardada en Firestore.`);
       } catch (errorPersistencia: any) {
-        console.error(`[VentaService] Error al guardar en base de datos: ${errorPersistencia.message}`);
-        throw new VentaServiceError(`Error Firestore: ${errorPersistencia.message}`, 'PERSISTENCIA_FALLIDA');
+        // Firestore falló DESPUÉS de descontar — ejecutar compensación
+        console.error(`[VentaService] ❌ Firestore falló, iniciando compensación...`);
+        try {
+          await this.inventoryProvider.compensar(ventaId, lineasDescontar);
+          console.log(`[VentaService] ✅ Compensación exitosa, stock reintegrado.`);
+        } catch (errorCompensacion: any) {
+          // FALLO CRÍTICO: stock descontado pero no se pudo reintegrar
+          console.error(`[VentaService] 🚨 FALLO CRÍTICO en compensación: ${errorCompensacion.message}`);
+          throw new CompensacionFallidaError(ventaId, errorCompensacion);
+        }
+        throw new VentaServiceError(
+          `Error Firestore: ${errorPersistencia.message}`,
+          'PERSISTENCIA_FALLIDA',
+        );
       }
 
       // ============================================================
-      // PASO 4: AUDITORÍA DE RECETAS (HU-30)
+      // PASO 3: AUDITORÍA DE RECETAS (HU-38)
       // ============================================================
       if (venta.getTieneProductosControlados()) {
-        console.log(`[VentaService] Registrando auditoría de receta...`);
+        console.log(`[VentaService] 📋 Registrando auditoría de receta...`);
         const productosControlados = venta.getLineas()
           .filter((l) => l.esProductoControlado())
           .map((l) => ({
@@ -130,13 +165,14 @@ export class VentaService {
             productosControlados,
           );
         } catch (e) {
-          console.warn(`[VentaService] No se pudo registrar auditoría, pero la venta es válida.`);
+          console.warn(`[VentaService] ⚠️ No se pudo registrar auditoría, pero la venta es válida.`);
         }
       }
 
       return ventaPersistida;
+
     } catch (error: any) {
-      console.error(`[VentaService] Fallo crítico: ${error.message}`);
+      console.error(`[VentaService] Fallo: ${error.message}`);
       throw error;
     }
   }
@@ -150,7 +186,17 @@ export class VentaService {
   }
 
   public async anularVenta(ventaId: string, razon: string, usuarioId: string): Promise<Venta> {
-    // Nota: Aquí también se debería comentar la compensación de stock si Python está apagado
+    // Al anular, reintegrar stock en Python
+    const venta = await this.ventaRepository.obtenerPorId(ventaId);
+    const lineasDescontar = MapperLineaDescontar.fromLineasVenta(venta.getLineas());
+
+    try {
+      await this.inventoryProvider.compensar(ventaId, lineasDescontar);
+      console.log(`[VentaService] ✅ Stock reintegrado por anulación de ${ventaId}`);
+    } catch (e: any) {
+      console.error(`[VentaService] ⚠️ No se pudo reintegrar stock al anular: ${e.message}`);
+    }
+
     return await this.ventaRepository.anular(ventaId, razon, usuarioId);
   }
 
