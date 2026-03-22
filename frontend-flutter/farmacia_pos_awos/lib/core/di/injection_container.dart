@@ -1,12 +1,45 @@
 import 'package:get_it/get_it.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../features/admin/data/repositories/empleados_repository.dart';
+import '../../features/auth/data/repositories/auth_repository.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/pos/data/repositories/catalogo_repository.dart';
+import '../../features/pos/data/repositories/ventas_repository.dart';
+import '../../features/pos/presentation/bloc/search/search_bloc.dart';
 import '../network/api_client.dart';
 
-/// Contenedor de inyección de dependencias usando GetIt.
+/// Contenedor de inyecciï¿½n de dependencias usando GetIt.
 final sl = GetIt.instance;
 
-/// Inicializa los servicios y dependencias de la aplicación.
+/// Inicializa los servicios y dependencias de la aplicaciï¿½n.
 Future<void> init() async {
-  // PATRÓN INYECCIÓN DE DEPENDENCIAS
+  // PATRï¿½N INYECCIï¿½N DE DEPENDENCIAS
   sl.registerLazySingleton<ApiClient>(() => ApiClient());
+  sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+
+  // PATRON: REPOSITORY - Encapsula acceso a servicios remotos por contexto.
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepository(
+      apiClient: sl<ApiClient>(),
+      firestore: sl<FirebaseFirestore>(),
+    ),
+  );
+  sl.registerLazySingleton<CatalogoRepository>(
+    () => CatalogoRepository(apiClient: sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<VentasRepository>(
+    () => VentasRepository(apiClient: sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<EmpleadosRepository>(
+    () => EmpleadosRepository(firestore: sl<FirebaseFirestore>()),
+  );
+
+  // PATRON: BLOC - Orquesta estado de bÃºsqueda y caja en presentaciÃ³n.
+  sl.registerFactory<AuthBloc>(
+    () => AuthBloc(authRepository: sl<AuthRepository>()),
+  );
+  sl.registerFactory<SearchBloc>(
+    () => SearchBloc(catalogoRepository: sl<CatalogoRepository>()),
+  );
 }

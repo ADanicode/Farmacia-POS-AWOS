@@ -1,0 +1,119 @@
+import '../../../../core/network/api_client.dart';
+import '../../domain/entities/medicamento.dart';
+import '../../domain/entities/medicamento_stock.dart';
+
+/// Repositorio de catálogo para consumo de medicamentos en FastAPI.
+class CatalogoRepository {
+  /// URL base del endpoint de búsqueda del catálogo Python.
+  static const String _catalogoEndpoint =
+      'http://localhost:8000/api/v1/catalogo/medicamentos';
+
+  /// URL base para consultar lotes y stock por medicamento.
+  static const String _almacenEndpoint = 'http://localhost:8000/api/v1/almacen';
+
+  /// Cliente HTTP compartido por toda la aplicación.
+  final ApiClient _apiClient;
+
+  /// Caché en memoria del catálogo activo.
+  List<Medicamento>? _catalogoCache;
+
+  /// Constructor principal del repositorio de catálogo.
+  CatalogoRepository({required ApiClient apiClient}) : _apiClient = apiClient;
+
+  /// Indica si el catálogo ya fue precargado en memoria.
+  bool get tieneCatalogoEnMemoria => _catalogoCache != null;
+
+  // PATRON: REPOSITORY - Abstrae el origen HTTP y entrega entidades de dominio.
+  // CUMPLE HU-17: BUSQUEDA EN MOSTRADOR (ALTA VELOCIDAD) VIA CATALOGO CENTRAL.
+  /// Obtiene medicamentos del catálogo, con filtro opcional por nombre.
+  Future<List<Medicamento>> obtenerMedicamentos({String? nombre}) async {
+    final Map<String, dynamic>? query =
+        (nombre != null && nombre.trim().isNotEmpty)
+        ? <String, dynamic>{'nombre': nombre.trim()}
+        : null;
+
+    final response = await _apiClient.get(
+      _catalogoEndpoint,
+      queryParameters: query,
+    );
+
+    final List<dynamic> data = response.data as List<dynamic>;
+    return data
+        .map(
+          (dynamic item) => Medicamento.fromJson(item as Map<String, dynamic>),
+        )
+        .toList(growable: false);
+  }
+
+  /// Precarga catálogo completo y lo conserva en memoria para búsquedas locales.
+  Future<List<Medicamento>> obtenerCatalogoCacheado({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh && _catalogoCache != null) {
+      return _catalogoCache!;
+    }
+
+    final List<Medicamento> catalogo = await obtenerMedicamentos();
+    _catalogoCache = catalogo;
+    return catalogo;
+  }
+
+  /// Filtra el catálogo cacheado en memoria sin nuevas llamadas HTTP por query.
+  Future<List<Medicamento>> buscarEnCache(String query) async {
+    final List<Medicamento> catalogo = await obtenerCatalogoCacheado();
+    final String normalizedQuery = _normalize(query.trim());
+
+    if (normalizedQuery.isEmpty) {
+      return catalogo;
+    }
+
+    return catalogo
+        .where((Medicamento medicamento) {
+          final String nombre = _normalize(medicamento.nombre);
+          final String codigo = _normalize(medicamento.codigoBarras);
+          final String categoria = _normalize(medicamento.categoria);
+          return nombre.contains(normalizedQuery) ||
+              codigo.contains(normalizedQuery) ||
+              categoria.contains(normalizedQuery);
+        })
+        .toList(growable: false);
+  }
+
+  String _normalize(String value) {
+    final String lower = value.toLowerCase();
+    return lower
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ü', 'u')
+        .replaceAll('ñ', 'n');
+  }
+
+  // CUMPLE HU-14: CONSULTA DE EXISTENCIAS POR LOTE PARA VISIBILIDAD DE STOCK.
+  /// Obtiene stock total y lote FEFO sugerido de un medicamento.
+  Future<MedicamentoStock> obtenerStockMedicamento(int medicamentoId) async {
+    final response = await _apiClient.get(
+      '$_almacenEndpoint/medicamentos/$medicamentoId/lotes',
+      requiresAuth: false,
+    );
+
+    final Map<String, dynamic> data = response.data as Map<String, dynamic>;
+    final List<dynamic> lotes =
+        (data['lotes'] as List<dynamic>?) ?? <dynamic>[];
+
+    String? lotePrincipal;
+    if (lotes.isNotEmpty) {
+      final Map<String, dynamic> primerLote =
+          lotes.first as Map<String, dynamic>;
+      lotePrincipal = primerLote['numero_lote'] as String?;
+    }
+
+    return MedicamentoStock(
+      medicamentoId: medicamentoId,
+      stockTotal: (data['stock_total'] as num?)?.toInt() ?? 0,
+      lotePrincipal: lotePrincipal,
+    );
+  }
+}

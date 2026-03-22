@@ -1,10 +1,20 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.api import inventario, catalogo, almacen, anulacion
 
 app = FastAPI(
     title="Farmacia POS - Inventario Service",
     version="1.0.0",
     description="Backend Python - Gestión de inventario, catálogo y almacén"
+)
+
+# CUMPLE HU-17 FRONTEND WEB: permite consumo cross-origin desde Flutter Web.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Módulo inventario (HU-29, HU-40)

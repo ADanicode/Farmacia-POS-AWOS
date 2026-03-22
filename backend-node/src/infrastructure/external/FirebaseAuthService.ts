@@ -16,10 +16,10 @@ export class FirebaseAuthService implements IAuthService {
   public async registrarPerfil(datos: any): Promise<void> {
     try {
       const nuevoUsuario = Usuario.desdeFirestore({
-        id: datos.uid || 'dev_user_samuel_2026',
+        id: datos.uid,
         email: datos.email,
         nombre: datos.nombre,
-        role: datos.role || 'ADMIN',
+        role: (datos.role || 'admin').toLowerCase(),
         permisos: datos.permisos || ['crear_venta', 'descontar_stock', 'ver_reportes', 'anular_venta'],
         activo: true,
         fechaCreacion: new Date().toISOString()
@@ -34,17 +34,35 @@ export class FirebaseAuthService implements IAuthService {
 
   public async login(loginDTO: LoginDTO): Promise<IAuthToken> {
     const validatedDTO = validarLoginDTO(loginDTO);
-    let decodedToken = { uid: 'dev_user_samuel_2026', email: 'samuel.admin@farmacia.com', name: 'Samuel Lugo' };
+
+    let decodedToken: admin.auth.DecodedIdToken;
+    try {
+      decodedToken = await this.firebaseApp.auth().verifyIdToken(validatedDTO.idToken, true);
+    } catch (error: any) {
+      const authError = new Error(`idToken de Google inválido: ${error.message}`);
+      authError.name = 'FirebaseAuthError';
+      throw authError;
+    }
 
     let usuario: Usuario;
     try {
       usuario = await this.perfilesRepository.obtenerPorUid(decodedToken.uid);
-    } catch (error) {
-      usuario = Usuario.desdeFirestore({
-        id: decodedToken.uid, email: decodedToken.email, nombre: decodedToken.name,
-        role: 'ADMIN', permisos: ['crear_venta', 'ver_reportes'], activo: true,
-        fechaCreacion: new Date().toISOString()
-      });
+    } catch (_) {
+      try {
+        usuario = await this.perfilesRepository.obtenerPorEmail(decodedToken.email || '');
+      } catch (error: any) {
+        const notFound = new Error(
+          `Perfil no encontrado en Firestore para UID ${decodedToken.uid}`,
+        );
+        notFound.name = 'NotFoundError';
+        throw notFound;
+      }
+    }
+
+    if (!usuario.isActivo()) {
+      const unauthorized = new Error('Usuario desactivado en perfiles_seguridad');
+      unauthorized.name = 'UnauthorizedError';
+      throw unauthorized;
     }
 
     const jwtPayload = {
