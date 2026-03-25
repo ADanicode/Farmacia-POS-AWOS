@@ -22,8 +22,9 @@ class ApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppEndpoints.nodeApiV1,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        // Railway puede tener cold-start; subir timeout reduce falsos errores.
+        connectTimeout: const Duration(seconds: 45),
+        receiveTimeout: const Duration(seconds: 45),
       ),
     );
 
@@ -93,20 +94,53 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
   }) async {
-    try {
-      return await _dio.post(
-        path,
-        data: data,
-        queryParameters: queryParameters,
-        options: Options(
-          extra: <String, dynamic>{'requiresAuth': requiresAuth},
-        ),
-      );
-    } on DioException catch (e) {
-      throw Exception(_buildHttpErrorMessage(e));
-    } on SocketException catch (e) {
-      throw Exception('Error de red: ${e.message}');
+    DioException? lastDioError;
+
+    for (int attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await _dio.post(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: Options(
+            extra: <String, dynamic>{'requiresAuth': requiresAuth},
+          ),
+        );
+      } on DioException catch (e) {
+        lastDioError = e;
+        final bool shouldRetry =
+            attempt == 0 &&
+            (e.type == DioExceptionType.connectionTimeout ||
+                e.type == DioExceptionType.receiveTimeout ||
+                e.type == DioExceptionType.connectionError ||
+                e.response?.statusCode == 502 ||
+                e.response?.statusCode == 503 ||
+                e.response?.statusCode == 504);
+
+        if (shouldRetry) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          continue;
+        }
+
+        throw Exception(_buildHttpErrorMessage(e));
+      } on SocketException catch (e) {
+        if (attempt == 0) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          continue;
+        }
+        throw Exception('Error de red: ${e.message}');
+      }
     }
+
+    throw Exception(
+      _buildHttpErrorMessage(
+        lastDioError ??
+            DioException(
+              requestOptions: RequestOptions(path: path),
+              message: 'Error de red desconocido',
+            ),
+      ),
+    );
   }
 
   /// Realiza una petición PATCH con manejo global de errores.
