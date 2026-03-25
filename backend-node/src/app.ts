@@ -4,6 +4,7 @@
  */
 
 import express, { Express } from 'express';
+import cors from 'cors';
 import {
   globalErrorHandler,
   notFoundHandler,
@@ -12,7 +13,7 @@ import { createAuthRoutes } from '@interfaces/routes/auth.routes';
 import { createVentasRoutes } from '@interfaces/routes/ventas.routes';
 import { IAuthService } from '@application/interfaces/IAuthService';
 import { VentaService } from '@application/services/VentaService';
-import { ReporteService } from '@application/services/ReporteService'; // <-- FIX 1: Importar ReporteService
+import { ReporteService } from '@application/services/ReporteService';
 
 /**
  * Crea y configura la aplicación Express
@@ -33,33 +34,21 @@ export function createApp(
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // CUMPLE HU-01/HU-17 FRONTEND WEB: CORS para Flutter Web en dev y producción
-  // NOTA: Este middleware debe ser el PRIMERO para interceptar preflight OPTIONS
-  const allowedOrigins = [
-    'https://farmacia-pos-awos-production.up.railway.app',
-    'http://localhost:3000',
-    'http://localhost:8080',
-    'http://127.0.0.1:8080',
-  ];
+  // CUMPLE HU-01/HU-17 FRONTEND WEB: CORS para Flutter Web usando paquete cors
+  const corsOptions = {
+    origin: [
+      'https://farmacia-pos-awos-production.up.railway.app',
+      'http://localhost:3000',
+      'http://localhost:8080',
+      'http://127.0.0.1:8080',
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'X-API-KEY'],
+    optionsSuccessStatus: 200,
+  };
 
-  app.use((req, res, next) => {
-    const origin = req.headers.origin as string;
-    
-    // Agregar CORS headers para origins permitidas
-    if (allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-KEY');
-      res.header('Access-Control-Allow-Credentials', 'true');
-    }
-
-    // Responder a preflight OPTIONS request
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-
-    next();
-  });
+  app.use(cors(corsOptions));
 
   app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
