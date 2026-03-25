@@ -127,21 +127,23 @@ class _LoginPageState extends State<LoginPage> {
                                           ),
                                         ),
                                   ),
-                                  icon: Image.network(
-                                    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/24px-Google_%22G%22_logo.svg.png',
+                                  icon: Container(
                                     width: 24,
                                     height: 24,
-                                    errorBuilder:
-                                        (
-                                          BuildContext context,
-                                          Object error,
-                                          StackTrace? stackTrace,
-                                        ) {
-                                          return const Icon(
-                                            Icons.g_mobiledata,
-                                            size: 24,
-                                          );
-                                        },
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4285F4),
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        'G',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                   label: const Text('Ingresar con Google'),
                                   onPressed: () {
