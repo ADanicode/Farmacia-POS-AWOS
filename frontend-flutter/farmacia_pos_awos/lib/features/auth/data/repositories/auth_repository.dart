@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../../core/network/app_endpoints.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/auth_token_store.dart';
 import '../../domain/entities/auth_session.dart';
@@ -7,13 +8,13 @@ import '../../domain/entities/auth_session.dart';
 /// Repositorio de autenticación para backend Node.
 class AuthRepository {
   /// Endpoint de login en backend Node.
-  static const String _loginEndpoint = 'http://localhost:3000/api/auth/login';
+  static String get _loginEndpoint => '${AppEndpoints.nodeApi}/auth/login';
 
   /// Endpoint para inspección de usuario actual.
-  static const String _meEndpoint = 'http://localhost:3000/api/auth/me';
+  static String get _meEndpoint => '${AppEndpoints.nodeApi}/auth/me';
 
   /// Endpoint de cierre de sesión.
-  static const String _logoutEndpoint = 'http://localhost:3000/api/auth/logout';
+  static String get _logoutEndpoint => '${AppEndpoints.nodeApi}/auth/logout';
 
   /// Cliente HTTP compartido del frontend.
   final ApiClient _apiClient;

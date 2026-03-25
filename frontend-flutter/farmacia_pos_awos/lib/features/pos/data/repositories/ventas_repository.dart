@@ -1,3 +1,4 @@
+import '../../../../core/network/app_endpoints.dart';
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/pago_venta.dart';
 import '../../domain/entities/pos_item.dart';
@@ -32,8 +33,8 @@ class VentasRepository {
   );
 
   /// Endpoint de procesamiento de venta en backend Node.
-  static const String _ventasEndpoint =
-      'http://localhost:3000/api/ventas/procesar';
+  static String get _ventasEndpoint =>
+      '${AppEndpoints.nodeApi}/ventas/procesar';
 
   /// Porcentaje de IVA esperado por backend Node.
   static const double _ivaPorcentaje = 16;

@@ -1,3 +1,4 @@
+import '../../../../core/network/app_endpoints.dart';
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/categoria_catalogo.dart';
 import '../../domain/entities/medicamento_catalogo.dart';
@@ -9,7 +10,7 @@ import '../../domain/entities/proveedor_catalogo.dart';
 /// de gestión de catálogo: medicamentos, categorías y proveedores.
 /// Cumple HU-06 a HU-11.
 class CatalogoAdminRepository {
-  static const String _base = 'http://localhost:8000/api/v1/catalogo';
+  static String get _base => '${AppEndpoints.pythonApiV1}/catalogo';
 
   /// Cliente HTTP compartido de la aplicación.
   final ApiClient _apiClient;

@@ -30,8 +30,11 @@ async function bootstrap(): Promise<void> {
       'FIREBASE_PRIVATE_KEY',
       'FIREBASE_CLIENT_EMAIL',
       'JWT_SECRET',
-      'API_PORT',
     ];
+
+    if (process.env.NODE_ENV === 'production') {
+      requiredEnvVars.push('PYTHON_INVENTORY_URL');
+    }
 
     const missingVars = requiredEnvVars.filter((env) => !process.env[env]);
     if (missingVars.length > 0) {
@@ -58,9 +61,10 @@ async function bootstrap(): Promise<void> {
       jwtConfig,
     );
 
-    const inventoryProvider = new HttpInventoryProvider(
-      process.env.PYTHON_INVENTORY_URL || 'http://localhost:5000',
-    );
+    const pythonInventoryUrl =
+      process.env.PYTHON_INVENTORY_URL || 'http://localhost:8000';
+
+    const inventoryProvider = new HttpInventoryProvider(pythonInventoryUrl);
 
     // FIX 2: Instanciar ReporteService antes que el App
     const reporteService = new ReporteService(ventaRepository);
@@ -77,7 +81,10 @@ async function bootstrap(): Promise<void> {
     console.log('✅ Aplicación Express configurada');
 
     // 5. LEVANTAR SERVIDOR
-    const port = parseInt(process.env.API_PORT || '3000', 10);
+    const port = parseInt(
+      process.env.PORT || process.env.API_PORT || '3000',
+      10,
+    );
     app.listen(port, () => {
       console.log('');
       console.log('╔════════════════════════════════════════════════════════╗');

@@ -1,15 +1,16 @@
+import '../../../../core/network/app_endpoints.dart';
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/lote_riesgo.dart';
 
 /// Repositorio de almacén para HU-12, HU-13 y HU-15.
 class AlmacenRepository {
   /// Endpoint de ingreso de lotes.
-  static const String _lotesEndpoint =
-      'http://localhost:8000/api/v1/almacen/lotes';
+  static String get _lotesEndpoint =>
+      '${AppEndpoints.pythonApiV1}/almacen/lotes';
 
   /// Endpoint de monitor de caducidades.
-  static const String _riesgoEndpoint =
-      'http://localhost:8000/api/v1/almacen/lotes/proximos-caducar';
+  static String get _riesgoEndpoint =>
+      '${AppEndpoints.pythonApiV1}/almacen/lotes/proximos-caducar';
 
   /// Cliente HTTP compartido.
   final ApiClient _apiClient;

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 
+import 'app_endpoints.dart';
 import 'auth_token_store.dart';
 
 /// Cliente HTTP singleton para la aplicaci�n de POS.
@@ -20,7 +21,7 @@ class ApiClient {
   ApiClient._internal() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:3000/api/v1',
+        baseUrl: AppEndpoints.nodeApiV1,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
       ),

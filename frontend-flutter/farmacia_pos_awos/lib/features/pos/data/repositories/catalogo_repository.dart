@@ -1,3 +1,4 @@
+import '../../../../core/network/app_endpoints.dart';
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/medicamento.dart';
 import '../../domain/entities/medicamento_stock.dart';
@@ -8,11 +9,11 @@ class CatalogoRepository {
   static const int _stockBatchSize = 20;
 
   /// URL base del endpoint de búsqueda del catálogo Python.
-  static const String _catalogoEndpoint =
-      'http://localhost:8000/api/v1/catalogo/medicamentos';
+  static String get _catalogoEndpoint =>
+      '${AppEndpoints.pythonApiV1}/catalogo/medicamentos';
 
   /// URL base para consultar lotes y stock por medicamento.
-  static const String _almacenEndpoint = 'http://localhost:8000/api/v1/almacen';
+  static String get _almacenEndpoint => '${AppEndpoints.pythonApiV1}/almacen';
 
   /// Cliente HTTP compartido por toda la aplicación.
   final ApiClient _apiClient;

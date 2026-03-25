@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 
+import '../../../../core/network/app_endpoints.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../pos/domain/entities/pago_venta.dart';
 import '../../../pos/presentation/bloc/pos/pos_state.dart';
@@ -10,12 +11,11 @@ import '../../domain/entities/venta_reporte.dart';
 /// Repositorio de reportes y auditoría contra Node.js.
 class ReportesRepository {
   /// Endpoint para obtener detalle de ticket histórico.
-  static const String _obtenerVentaEndpoint =
-      'http://localhost:3000/api/ventas';
+  static String get _obtenerVentaEndpoint => '${AppEndpoints.nodeApi}/ventas';
 
   /// Endpoint del backend Python para reintegrar inventario al anular.
-  static const String _reintegrarInventarioEndpoint =
-      'http://localhost:8000/api/v1/inventario/reintegrar';
+  static String get _reintegrarInventarioEndpoint =>
+      '${AppEndpoints.pythonApiV1}/inventario/reintegrar';
 
   /// Cliente HTTP compartido.
   final ApiClient _apiClient;
