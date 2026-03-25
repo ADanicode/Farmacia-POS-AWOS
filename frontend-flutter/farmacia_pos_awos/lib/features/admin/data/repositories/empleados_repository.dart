@@ -49,14 +49,11 @@ class EmpleadosRepository {
   }) async {
     await _collection.doc(uid).set(<String, dynamic>{
       'uid': uid,
-      'nombre': nombre.trim().isNotEmpty ? nombre : email.split('@').first,
       'email': email.toLowerCase(),
-      'role': 'vendedor',
-      'permisos': <String>[],
+      'nombre': nombre.trim().isNotEmpty ? nombre : email.split('@').first,
+      'role': 'sin_rol',
       'activo': false,
-      'estado': 'pendiente',
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
+      'permisos': <String>[],
     });
   }
 
@@ -68,15 +65,16 @@ class EmpleadosRepository {
     required bool activo,
   }) async {
     final String normalizedRole = role.trim().toLowerCase();
-    if (normalizedRole != 'admin' && normalizedRole != 'vendedor') {
-      throw ArgumentError('Role debe ser "admin" o "vendedor".');
+    if (normalizedRole != 'admin' &&
+        normalizedRole != 'vendedor' &&
+        normalizedRole != 'sin_rol') {
+      throw ArgumentError('Role debe ser "admin", "vendedor" o "sin_rol".');
     }
 
     await _collection.doc(uid).update(<String, dynamic>{
       'role': normalizedRole,
       'permisos': permisos,
       'activo': activo,
-      'estado': 'aprobado',
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

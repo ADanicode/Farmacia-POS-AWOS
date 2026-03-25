@@ -13,16 +13,24 @@ class VentaProcesadaResult {
   /// Cambio calculado y devuelto por backend.
   final double cambio;
 
+  /// Fecha real de la venta entregada por backend.
+  final DateTime fechaVenta;
+
   /// Constructor del resultado de venta procesada.
   const VentaProcesadaResult({
     required this.ventaId,
     required this.total,
     required this.cambio,
+    required this.fechaVenta,
   });
 }
 
 /// Repositorio de ventas para orquestación Saga en Node.js.
 class VentasRepository {
+  static final RegExp _timestampStringRegExp = RegExp(
+    r'^Timestamp\(seconds=(\d+),\s*nanoseconds=(\d+)\)$',
+  );
+
   /// Endpoint de procesamiento de venta en backend Node.
   static const String _ventasEndpoint =
       'http://localhost:3000/api/ventas/procesar';
@@ -105,15 +113,69 @@ class VentasRepository {
     }
 
     final Map<String, dynamic> data = body['data'] as Map<String, dynamic>;
+    final DateTime fechaVenta = _parseFechaVenta(data);
+
     return VentaProcesadaResult(
       ventaId: (data['ventaId'] as String?) ?? '',
       total: (data['total'] as num?)?.toDouble() ?? 0,
       cambio: (data['cambio'] as num?)?.toDouble() ?? 0,
+      fechaVenta: fechaVenta,
     );
   }
 
   /// Redondea un valor monetario a dos decimales.
   double _redondearMoneda(double value) {
     return (value * 100).roundToDouble() / 100;
+  }
+
+  /// Parsea fecha de backend de forma estricta para evitar Epoch silencioso.
+  DateTime _parseFechaVenta(Map<String, dynamic> json) {
+    final String ventaId = (json['ventaId'] ?? json['id'] ?? '').toString();
+    final dynamic fechaRaw = json['fechaVenta'] ?? json['fechaCreacion'];
+
+    if (fechaRaw == null) {
+      throw FormatException(
+        'CRITICO: La fecha viene nula desde el backend para el ticket $ventaId',
+      );
+    }
+
+    try {
+      DateTime fechaParseada;
+
+      if (fechaRaw is Map && fechaRaw.containsKey('_seconds')) {
+        final int? seconds = int.tryParse(fechaRaw['_seconds'].toString());
+        if (seconds == null) {
+          throw FormatException('Formato de fecha desconocido: $fechaRaw');
+        }
+        fechaParseada = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+      } else if (fechaRaw is String) {
+        final RegExpMatch? tsMatch = _timestampStringRegExp.firstMatch(
+          fechaRaw,
+        );
+        if (tsMatch != null) {
+          final int seconds = int.parse(tsMatch.group(1)!);
+          final int nanoseconds = int.parse(tsMatch.group(2)!);
+          final int millis = (seconds * 1000) + (nanoseconds ~/ 1000000);
+          fechaParseada = DateTime.fromMillisecondsSinceEpoch(millis);
+        } else {
+          fechaParseada = DateTime.parse(fechaRaw);
+        }
+      } else if (fechaRaw is int) {
+        final int millis = fechaRaw > 9999999999 ? fechaRaw : fechaRaw * 1000;
+        fechaParseada = DateTime.fromMillisecondsSinceEpoch(millis);
+      } else if (fechaRaw is num) {
+        final int rawInt = fechaRaw.toInt();
+        final int millis = rawInt > 9999999999 ? rawInt : rawInt * 1000;
+        fechaParseada = DateTime.fromMillisecondsSinceEpoch(millis);
+      } else {
+        throw FormatException('Formato de fecha desconocido: $fechaRaw');
+      }
+
+      return fechaParseada.toLocal();
+    } catch (e) {
+      // ignore: avoid_print
+      print('ERROR CRITICO AL PARSEAR FECHA: $fechaRaw. Venta ID: $ventaId');
+      rethrow;
+    }
   }
 }

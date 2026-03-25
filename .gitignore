@@ -1,0 +1,4 @@
+# Firebase secrets
+/google-services.json
+/frontend-flutter/farmacia_pos_awos/android/app/google-services.json
+/frontend-flutter/farmacia_pos_awos/ios/Runner/GoogleService-Info.plist

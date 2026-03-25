@@ -189,6 +189,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
             total: total,
             pagos: List<PagoVenta>.from(event.pagos),
             cambio: result.cambio,
+            fechaVenta: result.fechaVenta,
             cedulaMedico: state.tieneControlados
                 ? state.cedulaMedico.trim()
                 : null,

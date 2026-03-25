@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:farmacia_pos_awos/core/di/injection_container.dart';
+import 'package:farmacia_pos_awos/core/router/app_router.dart';
+import 'package:farmacia_pos_awos/core/router/route_guards.dart';
 import 'package:farmacia_pos_awos/features/auth/domain/entities/auth_session.dart';
-import 'package:farmacia_pos_awos/features/almacen/presentation/pages/recepcion_lotes_page.dart';
-import 'package:farmacia_pos_awos/features/admin/presentation/pages/empleados_page.dart';
 import 'package:farmacia_pos_awos/features/pos/data/repositories/ventas_repository.dart';
 import 'package:farmacia_pos_awos/features/pos/domain/entities/medicamento_stock.dart';
 import 'package:farmacia_pos_awos/features/pos/domain/entities/pago_venta.dart';
@@ -51,12 +53,31 @@ class _PosPageState extends State<PosPage> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _cedulaController = TextEditingController();
   final TextEditingController _medicoController = TextEditingController();
+  late final SearchBloc _searchBloc;
+  late final PosBloc _posBloc;
+  Timer? _backgroundSyncTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchBloc = sl<SearchBloc>()..add(const SearchQueryChanged(''));
+    _posBloc = PosBloc(
+      ventasRepository: sl<VentasRepository>(),
+      usuarioId: widget.session.uid,
+    );
+    _backgroundSyncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      _searchBloc.add(const SearchCatalogSyncRequested(forceRefresh: true));
+    });
+  }
 
   @override
   void dispose() {
+    _backgroundSyncTimer?.cancel();
     _searchController.dispose();
     _cedulaController.dispose();
     _medicoController.dispose();
+    _searchBloc.close();
+    _posBloc.close();
     super.dispose();
   }
 
@@ -65,15 +86,8 @@ class _PosPageState extends State<PosPage> {
     // PATRON: BLOC + REPOSITORY - Separación total entre UI y datos remotos.
     return MultiBlocProvider(
       providers: <BlocProvider<dynamic>>[
-        BlocProvider<SearchBloc>(
-          create: (_) => sl<SearchBloc>()..add(const SearchQueryChanged('')),
-        ),
-        BlocProvider<PosBloc>(
-          create: (_) => PosBloc(
-            ventasRepository: sl<VentasRepository>(),
-            usuarioId: widget.session.uid,
-          ),
-        ),
+        BlocProvider<SearchBloc>.value(value: _searchBloc),
+        BlocProvider<PosBloc>.value(value: _posBloc),
       ],
       child: Scaffold(
         appBar: AppBar(
@@ -98,11 +112,7 @@ class _PosPageState extends State<PosPage> {
             if (_esAdmin())
               TextButton.icon(
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const EmpleadosPage(),
-                    ),
-                  );
+                  Navigator.of(context).pushNamed(AppRoutes.empleados);
                 },
                 icon: const Icon(Icons.admin_panel_settings),
                 label: const Text('Gestión de Empleados'),
@@ -110,14 +120,26 @@ class _PosPageState extends State<PosPage> {
             if (_esAdmin())
               TextButton.icon(
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const RecepcionLotesPage(),
-                    ),
-                  );
+                  Navigator.of(context).pushNamed(AppRoutes.almacen);
                 },
                 icon: const Icon(Icons.inventory),
                 label: const Text('Recepción de Lotes'),
+              ),
+            if (_esAdmin())
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(AppRoutes.catalogo);
+                },
+                icon: const Icon(Icons.medication_liquid),
+                label: const Text('Catálogo'),
+              ),
+            if (_puedeVerReportes())
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(AppRoutes.reportes);
+                },
+                icon: const Icon(Icons.bar_chart),
+                label: const Text('Reportes'),
               ),
             IconButton(
               tooltip: 'Cerrar sesión',
@@ -134,6 +156,11 @@ class _PosPageState extends State<PosPage> {
                 cedulaController: _cedulaController,
                 medicoController: _medicoController,
                 session: widget.session,
+                onManualRefresh: () {
+                  _searchBloc.add(
+                    const SearchCatalogSyncRequested(forceRefresh: true),
+                  );
+                },
               );
             }
 
@@ -142,6 +169,11 @@ class _PosPageState extends State<PosPage> {
               cedulaController: _cedulaController,
               medicoController: _medicoController,
               session: widget.session,
+              onManualRefresh: () {
+                _searchBloc.add(
+                  const SearchCatalogSyncRequested(forceRefresh: true),
+                );
+              },
             );
           },
         ),
@@ -149,10 +181,11 @@ class _PosPageState extends State<PosPage> {
     );
   }
 
-  bool _esAdmin() {
-    final String role = widget.session.role.toLowerCase();
-    return role == 'admin' || widget.session.permisos.contains('admin');
-  }
+  bool _esAdmin() => RouteGuards.esAdmin(widget.session);
+
+  // CUMPLE HU-03: solo admin o permiso explícito ver_reportes_globales.
+  // Cajeros y vendedores NO acceden a reportes financieros globales.
+  bool _puedeVerReportes() => RouteGuards.puedeVerReportes(widget.session);
 }
 
 /// Layout móvil del POS con catálogo y carrito en columna.
@@ -161,6 +194,7 @@ class _MobilePosLayout extends StatelessWidget {
   final TextEditingController cedulaController;
   final TextEditingController medicoController;
   final AuthSession session;
+  final VoidCallback onManualRefresh;
 
   /// Constructor del layout móvil del POS.
   const _MobilePosLayout({
@@ -168,13 +202,19 @@ class _MobilePosLayout extends StatelessWidget {
     required this.cedulaController,
     required this.medicoController,
     required this.session,
+    required this.onManualRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: <Widget>[
-        Expanded(child: _CatalogoPanel(searchController: searchController)),
+        Expanded(
+          child: _CatalogoPanel(
+            searchController: searchController,
+            onManualRefresh: onManualRefresh,
+          ),
+        ),
         const Divider(height: 1),
         Expanded(
           child: _CarritoPanel(
@@ -194,6 +234,7 @@ class _DesktopPosLayout extends StatelessWidget {
   final TextEditingController cedulaController;
   final TextEditingController medicoController;
   final AuthSession session;
+  final VoidCallback onManualRefresh;
 
   /// Constructor del layout de escritorio del POS.
   const _DesktopPosLayout({
@@ -201,6 +242,7 @@ class _DesktopPosLayout extends StatelessWidget {
     required this.cedulaController,
     required this.medicoController,
     required this.session,
+    required this.onManualRefresh,
   });
 
   @override
@@ -209,7 +251,10 @@ class _DesktopPosLayout extends StatelessWidget {
       children: <Widget>[
         Expanded(
           flex: 3,
-          child: _CatalogoPanel(searchController: searchController),
+          child: _CatalogoPanel(
+            searchController: searchController,
+            onManualRefresh: onManualRefresh,
+          ),
         ),
         const VerticalDivider(width: 1),
         Expanded(
@@ -228,9 +273,13 @@ class _DesktopPosLayout extends StatelessWidget {
 /// Panel izquierdo de catálogo y búsqueda.
 class _CatalogoPanel extends StatelessWidget {
   final TextEditingController searchController;
+  final VoidCallback onManualRefresh;
 
   /// Constructor del panel de catálogo.
-  const _CatalogoPanel({required this.searchController});
+  const _CatalogoPanel({
+    required this.searchController,
+    required this.onManualRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -245,16 +294,38 @@ class _CatalogoPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           // CUMPLE HU-17: BUSQUEDA EN MOSTRADOR (ALTA VELOCIDAD).
-          TextField(
-            controller: searchController,
-            onChanged: (String value) {
-              context.read<SearchBloc>().add(SearchQueryChanged(value));
-            },
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Buscar medicamento por nombre',
-            ),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  controller: searchController,
+                  onChanged: (String value) {
+                    context.read<SearchBloc>().add(SearchQueryChanged(value));
+                  },
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Buscar medicamento por nombre',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Sincronizar catálogo',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Sincronizando catálogo con el almacén central...',
+                      ),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  onManualRefresh();
+                },
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Expanded(
@@ -370,18 +441,19 @@ class _MedicamentoCardState extends State<_MedicamentoCard> {
             Text(
               'Precio: \$ ${widget.medicamento.precio.toStringAsFixed(2)} MXN',
             ),
-            if (widget.stock != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Chip(
-                  visualDensity: VisualDensity.compact,
-                  label: Text(
-                    'Stock: ${widget.stock!.stockTotal} · Lote: ${widget.stock!.lotePrincipal ?? 'N/D'}',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  avatar: const Icon(Icons.inventory_2, size: 14),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Chip(
+                visualDensity: VisualDensity.compact,
+                label: Text(
+                  widget.stock == null
+                      ? 'Stock: -- · Lote: --'
+                      : 'Stock: ${widget.stock!.stockTotal} · Lote: ${widget.stock!.lotePrincipal ?? 'N/D'}',
+                  style: const TextStyle(fontSize: 11),
                 ),
+                avatar: const Icon(Icons.inventory_2, size: 14),
               ),
+            ),
             if (widget.medicamento.requiereReceta)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -456,6 +528,9 @@ class _CarritoPanel extends StatelessWidget {
             medicoController.clear();
           }
           if (state.lastTicketData != null) {
+            context.read<SearchBloc>().add(
+              SearchStockDiscountApplied(state.lastTicketData!.items),
+            );
             showDialog<void>(
               context: context,
               builder: (BuildContext dialogContext) => TicketPreviewDialog(

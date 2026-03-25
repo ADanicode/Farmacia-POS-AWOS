@@ -29,6 +29,9 @@ class PosTicketData extends Equatable {
   /// Cédula médica registrada cuando aplica.
   final String? cedulaMedico;
 
+  /// Fecha de la transacción mostrada en ticket.
+  final DateTime fechaVenta;
+
   /// Constructor principal del snapshot de ticket.
   const PosTicketData({
     required this.ventaId,
@@ -38,6 +41,7 @@ class PosTicketData extends Equatable {
     required this.total,
     required this.pagos,
     required this.cambio,
+    required this.fechaVenta,
     this.cedulaMedico,
   });
 
@@ -50,6 +54,7 @@ class PosTicketData extends Equatable {
     total,
     pagos,
     cambio,
+    fechaVenta,
     cedulaMedico,
   ];
 }

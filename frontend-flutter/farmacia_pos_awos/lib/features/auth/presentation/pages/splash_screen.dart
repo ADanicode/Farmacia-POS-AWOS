@@ -22,12 +22,15 @@ class SplashScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               SizedBox(
-                height: 180,
-                width: 180,
-                child: Lottie.asset(
-                  'assets/animations/Doctor.json',
-                  repeat: true,
-                  fit: BoxFit.contain,
+                height: 220,
+                width: 220,
+                child: Transform.scale(
+                  scale: 1.3,
+                  child: Lottie.asset(
+                    'assets/animations/Doctor.json',
+                    repeat: true,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

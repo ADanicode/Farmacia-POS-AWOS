@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection_container.dart' as di;
 import 'core/firebase/firebase_web_options.dart';
+import 'core/router/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
@@ -19,9 +20,10 @@ import 'features/pos/presentation/pages/pos_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // CUMPLE HU-01: Inicialización de Firebase para login SSO en Web.
   if (kIsWeb) {
     await Firebase.initializeApp(options: FirebaseWebOptions.currentPlatform);
+  } else {
+    await Firebase.initializeApp();
   }
 
   await di.init();
@@ -122,6 +124,10 @@ class _MyAppState extends State<MyApp> {
         theme: _buildLightTheme(),
         darkTheme: _buildDarkTheme(),
         themeMode: _themeMode,
+        // CUMPLE HU-03: guardias de ruta activos para TODAS las rutas nombradas.
+        // Cualquier navegación directa por URL en Flutter Web pasa por AppRouter,
+        // que verifica permisos antes de construir la pantalla solicitada.
+        onGenerateRoute: AppRouter.onGenerateRoute,
         home: BlocBuilder<AuthBloc, AuthState>(
           builder: (BuildContext context, AuthState state) {
             // CUMPLE TAREA 2: splash con duración de 3 segundos.

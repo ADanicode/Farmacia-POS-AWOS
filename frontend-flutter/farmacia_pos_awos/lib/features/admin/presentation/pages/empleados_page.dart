@@ -178,15 +178,15 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
     bool nuevoEstadoActivo,
   ) async {
     String rolSeleccionado = empleado.role;
-    final Map<String, bool> permisosSeleccionados = <String, bool>{
-      'crear_venta': empleado.permisos.contains('crear_venta'),
-      'ver_inventario': empleado.permisos.contains('ver_inventario'),
-      'gestionar_usuarios': empleado.permisos.contains('gestionar_usuarios'),
-      'ver_reportes_globales': empleado.permisos.contains(
-        'ver_reportes_globales',
-      ),
-      'anular_venta': empleado.permisos.contains('anular_venta'),
-    };
+    bool activoSeleccionado = nuevoEstadoActivo;
+    final Map<String, bool> permisosSeleccionados = permisosDisponibles
+        .asMap()
+        .map(
+          (_, String permiso) => MapEntry<String, bool>(
+            permiso,
+            empleado.permisos.contains(permiso),
+          ),
+        );
 
     await showDialog<void>(
       context: context,
@@ -219,6 +219,10 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
                         decoration: const InputDecoration(labelText: 'Rol'),
                         items: const <DropdownMenuItem<String>>[
                           DropdownMenuItem<String>(
+                            value: 'sin_rol',
+                            child: Text('Sin rol'),
+                          ),
+                          DropdownMenuItem<String>(
                             value: 'admin',
                             child: Text('Admin'),
                           ),
@@ -233,6 +237,26 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
                           }
                           setModalState(() {
                             rolSeleccionado = value;
+
+                            // Presets automáticos por rol con edición manual posterior.
+                            if (value == 'admin') {
+                              for (final String permiso
+                                  in permisosDisponibles) {
+                                permisosSeleccionados[permiso] = true;
+                              }
+                            } else if (value == 'vendedor') {
+                              for (final String permiso
+                                  in permisosDisponibles) {
+                                permisosSeleccionados[permiso] =
+                                    permiso == 'crear_venta' ||
+                                    permiso == 'ver_inventario';
+                              }
+                            } else {
+                              for (final String permiso
+                                  in permisosDisponibles) {
+                                permisosSeleccionados[permiso] = false;
+                              }
+                            }
                           });
                         },
                       ),
@@ -263,10 +287,10 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Activo'),
-                        value: nuevoEstadoActivo,
+                        value: activoSeleccionado,
                         onChanged: (bool value) {
                           setModalState(() {
-                            // El switch ya se actualiza en el diálogo
+                            activoSeleccionado = value;
                           });
                         },
                       ),
@@ -297,7 +321,7 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
                         uid: empleado.uid,
                         role: rolSeleccionado,
                         permisos: permisosActualizados,
-                        activo: nuevoEstadoActivo,
+                        activo: activoSeleccionado,
                       );
 
                       if (!mounted) {

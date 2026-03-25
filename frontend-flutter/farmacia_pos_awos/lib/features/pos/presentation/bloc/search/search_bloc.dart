@@ -9,6 +9,8 @@ import 'search_state.dart';
 
 /// BLoC de búsqueda de medicamentos para el módulo POS.
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
+  static const int _initialStockHydrationLimit = 60;
+
   /// Repositorio para consultar catálogo remoto.
   final CatalogoRepository _catalogoRepository;
 
@@ -22,6 +24,8 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       _onQueryChanged,
       transformer: _debounce(const Duration(milliseconds: 300)),
     );
+    on<SearchCatalogSyncRequested>(_onCatalogSyncRequested);
+    on<SearchStockDiscountApplied>(_onStockDiscountApplied);
 
     // Precarga del catálogo al iniciar para eliminar roundtrip por tecla.
     _catalogoRepository.obtenerCatalogoCacheado();
@@ -39,11 +43,52 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     SearchQueryChanged event,
     Emitter<SearchState> emit,
   ) async {
-    if (!_catalogoRepository.tieneCatalogoEnMemoria) {
+    await _cargarResultados(
+      emit,
+      query: event.query,
+      showLoading: !_catalogoRepository.tieneCatalogoEnMemoria,
+    );
+  }
+
+  /// Sincroniza silenciosamente catálogo y stock visible sin bloquear la UI.
+  Future<void> _onCatalogSyncRequested(
+    SearchCatalogSyncRequested event,
+    Emitter<SearchState> emit,
+  ) async {
+    await _cargarResultados(
+      emit,
+      query: state.query,
+      forceRefresh: event.forceRefresh,
+      showLoading: false,
+    );
+  }
+
+  /// Aplica un descuento optimista de stock directamente sobre la caché local.
+  Future<void> _onStockDiscountApplied(
+    SearchStockDiscountApplied event,
+    Emitter<SearchState> emit,
+  ) async {
+    _catalogoRepository.descontarStockLocal(event.vendidos);
+    emit(
+      state.copyWith(
+        stockPorMedicamento: _catalogoRepository.obtenerStockDesdeCache(
+          state.resultados,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cargarResultados(
+    Emitter<SearchState> emit, {
+    required String query,
+    bool forceRefresh = false,
+    bool showLoading = false,
+  }) async {
+    if (showLoading) {
       emit(
         state.copyWith(
           status: SearchStatus.loading,
-          query: event.query,
+          query: query,
           errorMessage: null,
         ),
       );
@@ -51,14 +96,24 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
     try {
       final List<Medicamento> resultados = await _catalogoRepository
-          .buscarEnCache(event.query);
+          .buscarEnCache(query, forceRefresh: forceRefresh);
+      final bool esCargaInicial = query.trim().isEmpty;
+      final List<Medicamento> medicamentosParaStock = esCargaInicial
+          ? resultados.take(_initialStockHydrationLimit).toList(growable: false)
+          : resultados;
+
+      final Map<int, MedicamentoStock> stockPorMedicamento =
+          await _catalogoRepository.obtenerStockParaMedicamentos(
+            medicamentosParaStock,
+            forceRefresh: forceRefresh,
+          );
 
       emit(
         state.copyWith(
           status: SearchStatus.success,
-          query: event.query,
+          query: query,
           resultados: resultados,
-          stockPorMedicamento: state.stockPorMedicamento,
+          stockPorMedicamento: stockPorMedicamento,
           errorMessage: null,
         ),
       );
@@ -66,7 +121,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       emit(
         state.copyWith(
           status: SearchStatus.failure,
-          query: event.query,
+          query: query,
           resultados: const <Medicamento>[],
           stockPorMedicamento: <int, MedicamentoStock>{},
           errorMessage: e.toString(),

@@ -108,6 +108,31 @@ class ApiClient {
     }
   }
 
+  /// Realiza una petición PATCH con manejo global de errores.
+  ///
+  /// Retorna la respuesta de Dio si es exitosa.
+  Future<Response<dynamic>> patch(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+  }) async {
+    try {
+      return await _dio.patch(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: Options(
+          extra: <String, dynamic>{'requiresAuth': requiresAuth},
+        ),
+      );
+    } on DioException catch (e) {
+      throw Exception(_buildHttpErrorMessage(e));
+    } on SocketException catch (e) {
+      throw Exception('Error de red: ${e.message}');
+    }
+  }
+
   /// Construye un mensaje de error HTTP con detalle de backend cuando existe.
   String _buildHttpErrorMessage(DioException error) {
     final int? statusCode = error.response?.statusCode;

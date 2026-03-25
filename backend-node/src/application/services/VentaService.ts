@@ -114,6 +114,9 @@ export class VentaService {
         );
       }
 
+      // Si el descuento en inventario fue exitoso, la venta ya puede consolidarse.
+      venta.marcarComoProcesada();
+
       // ============================================================
       // SAGA STEP 2: PERSISTIR EN FIRESTORE
       // ============================================================

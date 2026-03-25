@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:sign_in_button/sign_in_button.dart';
 
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -82,12 +81,69 @@ class _LoginPageState extends State<LoginPage> {
                               .fadeIn(duration: 300.ms)
                               .slideY(begin: 0.16, duration: 300.ms),
                           const SizedBox(height: 24),
-                          // CUMPLE HU-01 Y CU-01: LOGIN SSO NATIVO CON GOOGLE.
                           SizedBox(
                                 width: double.infinity,
-                                child: SignInButton(
-                                  Buttons.google,
-                                  text: 'Ingresar con Google',
+                                child: OutlinedButton.icon(
+                                  style: ButtonStyle(
+                                    backgroundColor:
+                                        const WidgetStatePropertyAll<Color>(
+                                          Colors.white,
+                                        ),
+                                    foregroundColor:
+                                        WidgetStatePropertyAll<Color>(
+                                          Colors.grey.shade800,
+                                        ),
+                                    overlayColor:
+                                        WidgetStateProperty.resolveWith<Color?>(
+                                          (Set<WidgetState> states) {
+                                            if (states.contains(
+                                              WidgetState.hovered,
+                                            )) {
+                                              return Colors.grey.shade100;
+                                            }
+                                            return Colors.transparent;
+                                          },
+                                        ),
+                                    side: WidgetStatePropertyAll<BorderSide>(
+                                      BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    shape:
+                                        WidgetStatePropertyAll<
+                                          RoundedRectangleBorder
+                                        >(
+                                          RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
+                                    padding:
+                                        const WidgetStatePropertyAll<
+                                          EdgeInsetsGeometry
+                                        >(
+                                          EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 12,
+                                          ),
+                                        ),
+                                  ),
+                                  icon: Image.network(
+                                    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/24px-Google_%22G%22_logo.svg.png',
+                                    width: 24,
+                                    height: 24,
+                                    errorBuilder:
+                                        (
+                                          BuildContext context,
+                                          Object error,
+                                          StackTrace? stackTrace,
+                                        ) {
+                                          return const Icon(
+                                            Icons.g_mobiledata,
+                                            size: 24,
+                                          );
+                                        },
+                                  ),
+                                  label: const Text('Ingresar con Google'),
                                   onPressed: () {
                                     if (state.status ==
                                         AuthStatus.authenticating) {
@@ -97,9 +153,6 @@ class _LoginPageState extends State<LoginPage> {
                                       const AuthGoogleSignInRequested(),
                                     );
                                   },
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
                                 ),
                               )
                               .animate(delay: 120.ms)

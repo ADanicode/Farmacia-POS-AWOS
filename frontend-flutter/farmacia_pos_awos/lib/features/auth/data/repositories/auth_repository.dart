@@ -51,21 +51,30 @@ class AuthRepository {
       final String token = (data['token'] as String?) ?? '';
       AuthTokenStore().setToken(token);
 
-      return (session: _buildSessionFromData(data, token), isPending: false);
+      final AuthSession session = _buildSessionFromData(data, token);
+      final bool accesoAprobado = await _tieneAccesoAprobado(
+        uid: uid,
+        email: email,
+        displayName: displayName,
+        permisosSesion: session.permisos,
+      );
+
+      return (session: session, isPending: !accesoAprobado);
     } catch (e) {
       final String errorMsg = e.toString();
       // Si el usuario no existe en Node, crear documento cascarón en Firestore.
       if (errorMsg.contains('Usuario no existe') ||
           errorMsg.contains('not found') ||
-          errorMsg.contains('404')) {
-        await _crearProfilPendiente(uid, email, displayName);
+          errorMsg.contains('404') ||
+          errorMsg.contains('401')) {
+        await _crearUsuarioSinRol(uid, email, displayName);
         return (
           session: AuthSession(
             token: 'pending',
             uid: uid,
             email: email,
             nombre: displayName,
-            role: 'vendedor',
+            role: 'sin_rol',
             permisos: const <String>[],
           ),
           isPending: true,
@@ -106,8 +115,8 @@ class AuthRepository {
     }
   }
 
-  /// Crea un documento cascarón en perfiles_seguridad para JIT.
-  Future<void> _crearProfilPendiente(
+  /// Crea un documento cascarón JIT sin rol ni permisos efectivos.
+  Future<void> _crearUsuarioSinRol(
     String uid,
     String email,
     String displayName,
@@ -117,17 +126,43 @@ class AuthRepository {
         .doc(uid)
         .set(<String, dynamic>{
           'uid': uid,
+          'email': email.toLowerCase(),
           'nombre': displayName.trim().isNotEmpty
               ? displayName
               : email.split('@').first,
-          'email': email.toLowerCase(),
-          'role': 'vendedor',
-          'permisos': <String>[],
+          'role': 'sin_rol',
           'activo': false,
-          'estado': 'pendiente',
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
+          'permisos': <String>[],
         });
+  }
+
+  /// Evalúa si el usuario tiene acceso habilitado según Firestore.
+  Future<bool> _tieneAccesoAprobado({
+    required String uid,
+    required String email,
+    required String displayName,
+    required List<String> permisosSesion,
+  }) async {
+    final DocumentSnapshot<Map<String, dynamic>> doc = await _firestore
+        .collection('perfiles_seguridad')
+        .doc(uid)
+        .get();
+
+    if (!doc.exists) {
+      await _crearUsuarioSinRol(uid, email, displayName);
+      return false;
+    }
+
+    final Map<String, dynamic> data = doc.data() ?? <String, dynamic>{};
+    final bool activo = (data['activo'] as bool?) ?? false;
+    final List<String> permisosFirestore =
+        ((data['permisos'] as List<dynamic>?) ?? <dynamic>[])
+            .map((dynamic permiso) => permiso.toString())
+            .toList(growable: false);
+
+    final bool tienePermisos =
+        permisosFirestore.isNotEmpty || permisosSesion.isNotEmpty;
+    return activo && tienePermisos;
   }
 
   /// Crea entidad de sesión a partir de respuesta de login.
@@ -140,7 +175,7 @@ class AuthRepository {
       uid: (usuario['uid'] as String?) ?? '',
       email: (usuario['email'] as String?) ?? '',
       nombre: (usuario['nombre'] as String?) ?? '',
-      role: ((usuario['role'] as String?) ?? 'vendedor').toLowerCase(),
+      role: ((usuario['role'] as String?) ?? 'sin_rol').toLowerCase(),
       permisos: ((data['permisos'] as List<dynamic>?) ?? <dynamic>[])
           .map((dynamic permiso) => permiso as String)
           .toList(growable: false),

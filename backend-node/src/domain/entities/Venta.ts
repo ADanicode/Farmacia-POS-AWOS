@@ -298,6 +298,7 @@ export class Venta {
     cambio: number,
     estado: 'pendiente' | 'procesada' | 'anulada' = 'pendiente',
     datosReceta?: DatosReceta,
+    fechaVenta?: Date,
   ) {
     this.id = id;
     this.usuarioId = usuarioId;
@@ -309,7 +310,7 @@ export class Venta {
     this.cambio = cambio;
     this.estado = estado;
     this.datosReceta = datosReceta;
-    this.fechaVenta = new Date();
+    this.fechaVenta = fechaVenta ? new Date(fechaVenta) : new Date();
     this.tieneProductosControlados = lineas.some((l) =>
       l.esProductoControlado(),
     );
@@ -414,6 +415,8 @@ export class Venta {
       );
     }
 
+    const fechaVenta = Venta.parseFechaFirestore(data.fechaVenta);
+
     const venta = new Venta(
       data.id,
       data.usuarioId,
@@ -425,9 +428,34 @@ export class Venta {
       data.cambio,
       data.estado,
       datosReceta,
+      fechaVenta,
     );
 
     return venta;
+  }
+
+  private static parseFechaFirestore(raw: any): Date {
+    if (!raw) {
+      return new Date(0);
+    }
+
+    if (raw instanceof Date) {
+      return new Date(raw);
+    }
+
+    if (typeof raw?.toDate === 'function') {
+      return raw.toDate();
+    }
+
+    if (typeof raw === 'string' || typeof raw === 'number') {
+      return new Date(raw);
+    }
+
+    if (typeof raw === 'object' && raw._seconds) {
+      return new Date(raw._seconds * 1000);
+    }
+
+    return new Date(0);
   }
 
   /**

@@ -19,6 +19,9 @@ class TicketPreviewDialog extends StatefulWidget {
   /// Callback al cerrar el flujo completo del preview.
   final VoidCallback onClose;
 
+  /// Fecha de transacción para tickets históricos.
+  final DateTime? fechaTransaccion;
+
   /// Constructor principal del diálogo de previsualización.
   const TicketPreviewDialog({
     super.key,
@@ -26,6 +29,7 @@ class TicketPreviewDialog extends StatefulWidget {
     required this.cajero,
     required this.rol,
     required this.onClose,
+    this.fechaTransaccion,
   });
 
   @override
@@ -115,6 +119,7 @@ class _TicketPreviewDialogState extends State<TicketPreviewDialog> {
                     ticketData: widget.ticketData,
                     cajero: widget.cajero,
                     rol: widget.rol,
+                    fechaTransaccion: widget.fechaTransaccion ?? DateTime.now(),
                   ),
                 ),
               ),
@@ -161,11 +166,13 @@ class _ThermalTicketPreview extends StatelessWidget {
   final PosTicketData ticketData;
   final String cajero;
   final String rol;
+  final DateTime fechaTransaccion;
 
   const _ThermalTicketPreview({
     required this.ticketData,
     required this.cajero,
     required this.rol,
+    required this.fechaTransaccion,
   });
 
   @override
@@ -214,7 +221,7 @@ class _ThermalTicketPreview extends StatelessWidget {
                 Text('Folio: ${ticketData.ventaId}', style: lineStyle),
                 Text('Cajero: $cajero ($rol)', style: lineStyle),
                 Text(
-                  'Fecha: ${DateTime.now().toIso8601String()}',
+                  'Fecha: ${fechaTransaccion.toIso8601String()}',
                   style: lineStyle,
                 ),
                 Text('------------------------------', style: lineStyle),

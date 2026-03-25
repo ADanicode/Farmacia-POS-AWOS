@@ -1,9 +1,12 @@
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/medicamento.dart';
 import '../../domain/entities/medicamento_stock.dart';
+import '../../domain/entities/pos_item.dart';
 
 /// Repositorio de catálogo para consumo de medicamentos en FastAPI.
 class CatalogoRepository {
+  static const int _stockBatchSize = 20;
+
   /// URL base del endpoint de búsqueda del catálogo Python.
   static const String _catalogoEndpoint =
       'http://localhost:8000/api/v1/catalogo/medicamentos';
@@ -16,6 +19,9 @@ class CatalogoRepository {
 
   /// Caché en memoria del catálogo activo.
   List<Medicamento>? _catalogoCache;
+
+  /// Caché en memoria del stock por medicamento.
+  final Map<int, MedicamentoStock> _stockCache = <int, MedicamentoStock>{};
 
   /// Constructor principal del repositorio de catálogo.
   CatalogoRepository({required ApiClient apiClient}) : _apiClient = apiClient;
@@ -59,8 +65,13 @@ class CatalogoRepository {
   }
 
   /// Filtra el catálogo cacheado en memoria sin nuevas llamadas HTTP por query.
-  Future<List<Medicamento>> buscarEnCache(String query) async {
-    final List<Medicamento> catalogo = await obtenerCatalogoCacheado();
+  Future<List<Medicamento>> buscarEnCache(
+    String query, {
+    bool forceRefresh = false,
+  }) async {
+    final List<Medicamento> catalogo = await obtenerCatalogoCacheado(
+      forceRefresh: forceRefresh,
+    );
     final String normalizedQuery = _normalize(query.trim());
 
     if (normalizedQuery.isEmpty) {
@@ -77,6 +88,97 @@ class CatalogoRepository {
               categoria.contains(normalizedQuery);
         })
         .toList(growable: false);
+  }
+
+  /// Obtiene stock para una lista de medicamentos usando caché con refresh opcional.
+  Future<Map<int, MedicamentoStock>> obtenerStockParaMedicamentos(
+    List<Medicamento> medicamentos, {
+    bool forceRefresh = false,
+  }) async {
+    final Map<int, MedicamentoStock> resultado = <int, MedicamentoStock>{};
+
+    final List<Medicamento> pendientes = <Medicamento>[];
+    for (final Medicamento medicamento in medicamentos) {
+      final MedicamentoStock? cached = _stockCache[medicamento.id];
+      if (!forceRefresh && cached != null) {
+        resultado[medicamento.id] = cached;
+      } else {
+        pendientes.add(medicamento);
+      }
+    }
+
+    for (int i = 0; i < pendientes.length; i += _stockBatchSize) {
+      final int end = (i + _stockBatchSize) > pendientes.length
+          ? pendientes.length
+          : (i + _stockBatchSize);
+      final List<Medicamento> lote = pendientes.sublist(i, end);
+
+      final List<_StockLookupResult> loteResuelto = await Future.wait(
+        lote.map((_resolverStockMedicamento)),
+      );
+
+      for (final _StockLookupResult item in loteResuelto) {
+        if (item.stock != null) {
+          _stockCache[item.medicamentoId] = item.stock!;
+          resultado[item.medicamentoId] = item.stock!;
+          continue;
+        }
+
+        final MedicamentoStock? cached = _stockCache[item.medicamentoId];
+        if (cached != null) {
+          resultado[item.medicamentoId] = cached;
+        }
+      }
+    }
+
+    return resultado;
+  }
+
+  Future<_StockLookupResult> _resolverStockMedicamento(
+    Medicamento medicamento,
+  ) async {
+    try {
+      final MedicamentoStock stock = await obtenerStockMedicamento(
+        medicamento.id,
+      );
+      return _StockLookupResult(medicamentoId: medicamento.id, stock: stock);
+    } catch (_) {
+      return _StockLookupResult(medicamentoId: medicamento.id, stock: null);
+    }
+  }
+
+  /// Retorna stock local disponible desde caché para los medicamentos visibles.
+  Map<int, MedicamentoStock> obtenerStockDesdeCache(
+    List<Medicamento> medicamentos,
+  ) {
+    final Map<int, MedicamentoStock> resultado = <int, MedicamentoStock>{};
+    for (final Medicamento medicamento in medicamentos) {
+      final MedicamentoStock? cached = _stockCache[medicamento.id];
+      if (cached != null) {
+        resultado[medicamento.id] = cached;
+      }
+    }
+    return resultado;
+  }
+
+  /// Descuenta stock local en RAM sin bloquear UI tras una venta exitosa.
+  void descontarStockLocal(List<PosItem> vendidos) {
+    for (final PosItem item in vendidos) {
+      final MedicamentoStock? cached = _stockCache[item.medicamento.id];
+      if (cached == null) {
+        continue;
+      }
+
+      final int nuevoStock = (cached.stockTotal - item.cantidad).clamp(
+        0,
+        1 << 31,
+      );
+      _stockCache[item.medicamento.id] = MedicamentoStock(
+        medicamentoId: cached.medicamentoId,
+        stockTotal: nuevoStock,
+        lotePrincipal: cached.lotePrincipal,
+      );
+    }
   }
 
   String _normalize(String value) {
@@ -116,4 +218,11 @@ class CatalogoRepository {
       lotePrincipal: lotePrincipal,
     );
   }
+}
+
+class _StockLookupResult {
+  final int medicamentoId;
+  final MedicamentoStock? stock;
+
+  const _StockLookupResult({required this.medicamentoId, required this.stock});
 }
