@@ -33,11 +33,26 @@ export function createApp(
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // CUMPLE HU-01/HU-17 FRONTEND WEB: habilita acceso cross-origin para Flutter Web.
+  // CUMPLE HU-01/HU-17 FRONTEND WEB: habilita CORS para Flutter Web en dev y producción
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin as string;
+    
+    // En producción, aceptar solo el dominio de Railway web
+    // En desarrollo, aceptar localhost
+    const allowedOrigins = [
+      'https://farmacia-pos-awos-production.up.railway.app',
+      'http://localhost:3000',
+      'http://localhost:8080',
+      'http://192.168.1.1:8080', // Para testing local
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+    
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-KEY');
+    res.header('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
       res.sendStatus(204);
