@@ -29,9 +29,8 @@ COPY frontend-flutter/farmacia_pos_awos .
 RUN flutter pub get
 
 # Build web release with production endpoints
-# Note: Update these URLs with your actual Railway service URLs
-ARG NODE_API_URL=https://your-node.up.railway.app
-ARG PYTHON_API_URL=https://your-python.up.railway.app
+ARG NODE_API_URL=https://backend-node-production-2803.up.railway.app
+ARG PYTHON_API_URL=https://backend-python-production-8a3c.up.railway.app
 
 RUN flutter build web --release \
     --dart-define=NODE_API_URL=${NODE_API_URL} \
