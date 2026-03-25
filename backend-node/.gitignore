@@ -12,6 +12,7 @@ build/
 *.json
 !package.json
 !tsconfig.json
+!railway.json
 
 # Logs
 npm-debug.log*
