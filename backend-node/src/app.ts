@@ -33,30 +33,29 @@ export function createApp(
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // CUMPLE HU-01/HU-17 FRONTEND WEB: habilita CORS para Flutter Web en dev y producción
+  // CUMPLE HU-01/HU-17 FRONTEND WEB: CORS para Flutter Web en dev y producción
+  // NOTA: Este middleware debe ser el PRIMERO para interceptar preflight OPTIONS
+  const allowedOrigins = [
+    'https://farmacia-pos-awos-production.up.railway.app',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+  ];
+
   app.use((req, res, next) => {
     const origin = req.headers.origin as string;
     
-    // En producción, aceptar solo el dominio de Railway web
-    // En desarrollo, aceptar localhost
-    const allowedOrigins = [
-      'https://farmacia-pos-awos-production.up.railway.app',
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'http://192.168.1.1:8080', // Para testing local
-    ];
-    
+    // Agregar CORS headers para origins permitidas
     if (allowedOrigins.includes(origin)) {
       res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-KEY');
+      res.header('Access-Control-Allow-Credentials', 'true');
     }
-    
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-KEY');
-    res.header('Access-Control-Allow-Credentials', 'true');
 
+    // Responder a preflight OPTIONS request
     if (req.method === 'OPTIONS') {
-      res.sendStatus(204);
-      return;
+      return res.sendStatus(200);
     }
 
     next();
