@@ -32,10 +32,6 @@ async function bootstrap(): Promise<void> {
       'JWT_SECRET',
     ];
 
-    if (process.env.NODE_ENV === 'production') {
-      requiredEnvVars.push('PYTHON_INVENTORY_URL');
-    }
-
     const missingVars = requiredEnvVars.filter((env) => !process.env[env]);
     if (missingVars.length > 0) {
       throw new Error(`Variables de entorno faltantes: ${missingVars.join(', ')}`);
@@ -61,11 +57,17 @@ async function bootstrap(): Promise<void> {
       jwtConfig,
     );
 
-    const rawPythonInventoryUrl =
-      process.env.PYTHON_INVENTORY_URL || 'http://localhost:8000';
+    const rawPythonInventoryUrl = process.env.PYTHON_INVENTORY_URL
+      || 'https://backend-python-production-8a3c.up.railway.app';
     const pythonInventoryUrl = /^https?:\/\//i.test(rawPythonInventoryUrl)
       ? rawPythonInventoryUrl
       : `https://${rawPythonInventoryUrl}`;
+
+    if (!process.env.PYTHON_INVENTORY_URL) {
+      console.warn(
+        '⚠️ PYTHON_INVENTORY_URL no configurada. Usando valor por defecto de producción.',
+      );
+    }
 
     const inventoryProvider = new HttpInventoryProvider(pythonInventoryUrl);
 
