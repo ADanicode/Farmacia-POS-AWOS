@@ -61,8 +61,11 @@ async function bootstrap(): Promise<void> {
       jwtConfig,
     );
 
-    const pythonInventoryUrl =
+    const rawPythonInventoryUrl =
       process.env.PYTHON_INVENTORY_URL || 'http://localhost:8000';
+    const pythonInventoryUrl = /^https?:\/\//i.test(rawPythonInventoryUrl)
+      ? rawPythonInventoryUrl
+      : `https://${rawPythonInventoryUrl}`;
 
     const inventoryProvider = new HttpInventoryProvider(pythonInventoryUrl);
 
