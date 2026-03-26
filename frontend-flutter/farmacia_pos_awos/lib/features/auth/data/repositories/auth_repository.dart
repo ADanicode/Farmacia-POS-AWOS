@@ -124,6 +124,16 @@ class AuthRepository {
     String email,
     String displayName,
   ) async {
+    final QuerySnapshot<Map<String, dynamic>> existingByEmail = await _firestore
+        .collection('perfiles_seguridad')
+        .where('email', isEqualTo: email.toLowerCase())
+        .limit(1)
+        .get();
+
+    if (existingByEmail.docs.isNotEmpty) {
+      return;
+    }
+
     final DocumentReference<Map<String, dynamic>> ref = _firestore
         .collection('perfiles_seguridad')
         .doc(uid);
@@ -152,10 +162,23 @@ class AuthRepository {
     required String displayName,
     required List<String> permisosSesion,
   }) async {
-    final DocumentSnapshot<Map<String, dynamic>> doc = await _firestore
+    DocumentSnapshot<Map<String, dynamic>> doc = await _firestore
         .collection('perfiles_seguridad')
         .doc(uid)
         .get();
+
+    if (!doc.exists) {
+      final QuerySnapshot<Map<String, dynamic>> existingByEmail =
+          await _firestore
+              .collection('perfiles_seguridad')
+              .where('email', isEqualTo: email.toLowerCase())
+              .limit(1)
+              .get();
+
+      if (existingByEmail.docs.isNotEmpty) {
+        doc = existingByEmail.docs.first;
+      }
+    }
 
     if (!doc.exists) {
       await _crearUsuarioSinRol(uid, email, displayName);
