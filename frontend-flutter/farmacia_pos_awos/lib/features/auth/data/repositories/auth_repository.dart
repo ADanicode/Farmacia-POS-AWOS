@@ -165,6 +165,9 @@ class AuthRepository {
     final CollectionReference<Map<String, dynamic>> perfiles = _firestore
         .collection('perfiles_seguridad');
 
+    final String emailNormalizado = email.toLowerCase();
+
+    // Primero buscar por UID (más rápido y exacto)
     final DocumentSnapshot<Map<String, dynamic>> byUid = await perfiles
         .doc(uid)
         .get();
@@ -172,8 +175,9 @@ class AuthRepository {
       return byUid;
     }
 
+    // Luego buscar por email normalizado
     final QuerySnapshot<Map<String, dynamic>> byEmail = await perfiles
-        .where('email', isEqualTo: email.toLowerCase())
+        .where('email', isEqualTo: emailNormalizado)
         .limit(1)
         .get();
     if (byEmail.docs.isNotEmpty) {

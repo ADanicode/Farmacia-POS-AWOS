@@ -49,10 +49,12 @@ export class FirebaseAuthService implements IAuthService {
       usuario = await this.perfilesRepository.obtenerPorUid(decodedToken.uid);
     } catch (_) {
       try {
-        usuario = await this.perfilesRepository.obtenerPorEmail(decodedToken.email || '');
+        // IMPORTANTE: Normalizar email antes de buscar (consistencia case-insensitive)
+        const emailNormalizado = (decodedToken.email || '').toLowerCase();
+        usuario = await this.perfilesRepository.obtenerPorEmail(emailNormalizado);
       } catch (error: any) {
         const notFound = new Error(
-          `Perfil no encontrado en Firestore para UID ${decodedToken.uid}`,
+          `Perfil no encontrado en Firestore para UID ${decodedToken.uid} o email ${decodedToken.email}`,
         );
         notFound.name = 'NotFoundError';
         throw notFound;

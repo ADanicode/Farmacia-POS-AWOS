@@ -26,16 +26,18 @@ export class FirestorePerfilesRepository implements IPerfilesRepository {
   }
 
   public async obtenerPorEmail(email: string): Promise<Usuario> {
+    // IMPORTANTE: Normalizar email a lowercase para buscar de forma consistente
+    const normalizedEmail = email.toLowerCase();
     const snapshot = await this.firestore.collection(this.collectionName)
-      .where('email', '==', email).limit(1).get();
-    if (snapshot.empty) throw new Error(`Email ${email} no encontrado`);
+      .where('email', '==', normalizedEmail).limit(1).get();
+    if (snapshot.empty) throw new Error(`Email ${normalizedEmail} no encontrado`);
     return this.mapearDocumentoAUsuario(snapshot.docs[0].data() as FirestorePerfil);
   }
 
   public async crear(usuario: Usuario): Promise<Usuario> {
     const perfil: FirestorePerfil = {
       uid: usuario.getId(),
-      email: usuario.getEmail(),
+      email: usuario.getEmail().toLowerCase(),  // Normalizar a lowercase
       nombre: usuario.getNombre(),
       role: usuario.getRole(),
       permisos: usuario.getPermisos(),
