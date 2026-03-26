@@ -124,6 +124,55 @@ export class VentasController {
   }
 
   /**
+   * POST /api/ventas/:ventaId/anular
+   * HU-37: Anulación segura de ventas con trazabilidad.
+   */
+  public async anular(req: Request, res: Response): Promise<void> {
+    try {
+      const { ventaId } = req.params;
+      const usuarioAuth = (req as any).user;
+      const motivo = String(req.body?.motivo ?? '').trim();
+
+      if (!motivo) {
+        res.status(400).json({
+          success: false,
+          error: 'El motivo de anulación es obligatorio',
+        });
+        return;
+      }
+
+      const venta = await this.ventaService.anularVenta(
+        ventaId,
+        motivo,
+        usuarioAuth.uid,
+      );
+
+      res.status(200).json({
+        success: true,
+        data: {
+          ventaId: venta.getId(),
+          estado: venta.getEstado(),
+          razonAnulacion: motivo,
+        },
+      });
+    } catch (error: any) {
+      if (error.message?.toLowerCase().includes('no encontrada')) {
+        res.status(404).json({
+          success: false,
+          error: 'Venta no encontrada',
+        });
+        return;
+      }
+
+      console.error(`[VentasController] Error en anulación:`, error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Error al anular venta',
+      });
+    }
+  }
+
+  /**
    * Centralizador de manejo de errores para limpieza del código
    */
   private manejarErroresVenta(error: any, res: Response): void {

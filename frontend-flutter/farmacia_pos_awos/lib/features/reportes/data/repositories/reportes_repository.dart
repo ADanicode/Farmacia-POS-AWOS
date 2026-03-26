@@ -13,9 +13,8 @@ class ReportesRepository {
   /// Endpoint para obtener detalle de ticket histórico.
   static String get _obtenerVentaEndpoint => '${AppEndpoints.nodeApi}/ventas';
 
-  /// Endpoint del backend Python para reintegrar inventario al anular.
-  static String get _reintegrarInventarioEndpoint =>
-      '${AppEndpoints.pythonApiV1}/inventario/reintegrar';
+  /// Endpoint para anulación de venta en backend Node (con RBAC).
+  static String get _anularVentaEndpoint => '${AppEndpoints.nodeApi}/ventas';
 
   /// Cliente HTTP compartido.
   final ApiClient _apiClient;
@@ -176,20 +175,10 @@ class ReportesRepository {
 
   /// Solicita anulación de venta e inicio de rollback Saga.
   Future<void> anularVenta(String ventaId, String motivo) async {
-    await FirebaseFirestore.instance
-        .collection('tickets_ventas')
-        .doc(ventaId)
-        .update(<String, dynamic>{
-          'estado': 'anulada',
-          'razonAnulacion': motivo,
-          'fechaAnulacion': FieldValue.serverTimestamp(),
-          'fechaActualizacion': FieldValue.serverTimestamp(),
-        });
-
     await _apiClient.post(
-      _reintegrarInventarioEndpoint,
-      requiresAuth: false,
-      data: <String, dynamic>{'ventaId': ventaId, 'motivo': motivo},
+      '$_anularVentaEndpoint/$ventaId/anular',
+      requiresAuth: true,
+      data: <String, dynamic>{'motivo': motivo},
     );
   }
 

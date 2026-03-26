@@ -2,8 +2,10 @@ import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection_container.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/domain/entities/auth_session.dart';
 import '../../../pos/presentation/widgets/ticket_preview_dialog.dart';
 import '../../data/repositories/reportes_repository.dart';
@@ -762,6 +764,16 @@ class _ReportesPageState extends State<ReportesPage> {
   }
 
   Future<void> _onAnularVenta(VentaReporte venta) async {
+    final List<String> permisosActuales =
+        context.read<AuthBloc>().state.session?.permisos ??
+        widget.session.permisos;
+    if (!permisosActuales.contains('anular_venta')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No tienes permiso para anular ventas.')),
+      );
+      return;
+    }
+
     final String? motivo = await _pedirMotivoAnulacion(venta);
     if (motivo == null || motivo.trim().isEmpty) {
       return;
@@ -819,8 +831,8 @@ class _ReportesPageState extends State<ReportesPage> {
     }
   }
 
-  Widget _buildVentaCard(VentaReporte venta) {
-    final bool anulable = venta.estado != 'anulada';
+  Widget _buildVentaCard(VentaReporte venta, bool puedeAnularVenta) {
+    final bool anulable = venta.estado != 'anulada' && puedeAnularVenta;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -876,6 +888,14 @@ class _ReportesPageState extends State<ReportesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool puedeAnularVenta = context.select<AuthBloc, bool>((
+      AuthBloc bloc,
+    ) {
+      final List<String> permisos =
+          bloc.state.session?.permisos ?? widget.session.permisos;
+      return permisos.contains('anular_venta');
+    });
+
     final double total = _reporte.totalVendido;
     final int tickets = _reporte.totalTickets;
     final double promedio = tickets > 0 ? total / tickets : 0;
@@ -1013,7 +1033,8 @@ class _ReportesPageState extends State<ReportesPage> {
                             rows: _ventas
                                 .map((VentaReporte venta) {
                                   final bool anulable =
-                                      venta.estado != 'anulada';
+                                      venta.estado != 'anulada' &&
+                                      puedeAnularVenta;
                                   return DataRow(
                                     cells: <DataCell>[
                                       DataCell(Text(venta.folio)),
@@ -1043,7 +1064,9 @@ class _ReportesPageState extends State<ReportesPage> {
                                                 icon: const Icon(
                                                   Icons.cancel_outlined,
                                                 ),
-                                              ),
+                                              )
+                                            else
+                                              const SizedBox.shrink(),
                                           ],
                                         ),
                                       ),
@@ -1054,7 +1077,10 @@ class _ReportesPageState extends State<ReportesPage> {
                           ),
                         )
                       else
-                        ..._ventas.map(_buildVentaCard),
+                        ..._ventas.map(
+                          (VentaReporte venta) =>
+                              _buildVentaCard(venta, puedeAnularVenta),
+                        ),
                     ],
                   );
                 },

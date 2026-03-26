@@ -11,11 +11,11 @@ export function createVentasRoutes(
   authService: IAuthService,
 ): Router {
   const router = Router();
-  
+
   const ventasController = new VentasController(
     ventaService,
     reporteService,
-    authService
+    authService,
   );
 
   /**
@@ -24,24 +24,34 @@ export function createVentasRoutes(
    */
   router.post(
     '/procesar',
-    requireAuth(authService), // ✅ FIX: Invocar con el servicio
-  requirePermissions('crear_venta'), // ✅ FIX: Pasar como array si así lo espera el middleware
+    requireAuth(authService),
+    requirePermissions('crear_venta'),
     (req: Request, res: Response) => ventasController.procesar(req, res),
   );
 
-  // En createVentasRoutes...
-router.get(
-  '/reporte/turno',
-  requireAuth(authService),
-  (req, res) => ventasController.obtenerReporteTurno(req, res)
-);
+  router.get(
+    '/reporte/turno',
+    requireAuth(authService),
+    (req: Request, res: Response) => ventasController.obtenerReporteTurno(req, res),
+  );
+
+  /**
+   * POST /api/ventas/:ventaId/anular
+   * HU-37: anulación protegida por permiso explícito.
+   */
+  router.post(
+    '/:ventaId/anular',
+    requireAuth(authService),
+    requirePermissions('anular_venta'),
+    (req: Request, res: Response) => ventasController.anular(req, res),
+  );
 
   /**
    * GET /api/ventas/:ventaId
    */
   router.get(
     '/:ventaId',
-    requireAuth(authService), // ✅ FIX: Invocar con el servicio
+    requireAuth(authService),
     (req: Request, res: Response) => ventasController.obtener(req, res),
   );
 
