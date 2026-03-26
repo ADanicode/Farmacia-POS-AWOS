@@ -10,8 +10,9 @@ interface FirestorePerfil {
   role: RoleType;
   permisos: string[];
   activo: boolean;
-  fechaCreacion: admin.firestore.Timestamp;
+  fechaCreacion?: admin.firestore.Timestamp;
   fechaActualizacion?: admin.firestore.Timestamp;
+  updatedAt?: admin.firestore.Timestamp;
 }
 
 export class FirestorePerfilesRepository implements IPerfilesRepository {
@@ -75,7 +76,16 @@ export class FirestorePerfilesRepository implements IPerfilesRepository {
 
   private mapearDocumentoAUsuario(doc: FirestorePerfil): Usuario {
     const roleNormalizado = String(doc.role).toLowerCase();
-    const permisosNormalizados = doc.permisos.map((permiso) => String(permiso).toLowerCase());
+    const permisosNormalizados = (doc.permisos ?? []).map((permiso) =>
+      String(permiso).toLowerCase(),
+    );
+    const fecha = doc.fechaCreacion
+      ? doc.fechaCreacion.toDate()
+      : doc.updatedAt
+      ? doc.updatedAt.toDate()
+      : doc.fechaActualizacion
+      ? doc.fechaActualizacion.toDate()
+      : new Date();
 
     return Usuario.desdeFirestore({
       id: doc.uid,
@@ -84,7 +94,7 @@ export class FirestorePerfilesRepository implements IPerfilesRepository {
       role: roleNormalizado,
       permisos: permisosNormalizados as PermissionType[],
       activo: doc.activo,
-      fechaCreacion: doc.fechaCreacion.toDate().toISOString(),
+      fechaCreacion: fecha.toISOString(),
     });
   }
 }

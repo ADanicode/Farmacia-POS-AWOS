@@ -154,6 +154,7 @@ class AuthRepository {
           'role': 'sin_rol',
           'activo': false,
           'permisos': <String>[],
+          'fechaCreacion': FieldValue.serverTimestamp(),
         });
   }
 
