@@ -170,6 +170,7 @@ class _CatalogoViewState extends State<_CatalogoView>
           title: const Text('Administración de Catálogo'),
           bottom: TabBar(
             controller: _tabController,
+            isScrollable: MediaQuery.of(context).size.width <= 500,
             tabs: const <Widget>[
               Tab(icon: Icon(Icons.medication), text: 'Medicamentos'),
               Tab(icon: Icon(Icons.category), text: 'Categorías'),

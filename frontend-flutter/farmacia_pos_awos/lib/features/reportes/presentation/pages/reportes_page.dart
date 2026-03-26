@@ -904,11 +904,18 @@ class _ReportesPageState extends State<ReportesPage> {
       appBar: AppBar(
         title: const Text('Reportes y Auditoría'),
         actions: <Widget>[
-          TextButton.icon(
-            onPressed: _onExportarReporte,
-            icon: const Icon(Icons.download_outlined),
-            label: const Text('Exportar Reporte (CSV)'),
-          ),
+          if (MediaQuery.of(context).size.width > 800)
+            TextButton.icon(
+              onPressed: _onExportarReporte,
+              icon: const Icon(Icons.download_outlined),
+              label: const Text('Exportar Reporte (CSV)'),
+            )
+          else
+            IconButton(
+              tooltip: 'Exportar CSV',
+              onPressed: _onExportarReporte,
+              icon: const Icon(Icons.download_outlined),
+            ),
           IconButton(
             tooltip: 'Recargar',
             onPressed: () => _cargarReporte(showLoader: false),

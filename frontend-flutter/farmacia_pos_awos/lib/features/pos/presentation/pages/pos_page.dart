@@ -83,6 +83,7 @@ class _PosPageState extends State<PosPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDesktop = MediaQuery.of(context).size.width > 800;
     // PATRON: BLOC + REPOSITORY - Separación total entre UI y datos remotos.
     return MultiBlocProvider(
       providers: <BlocProvider<dynamic>>[
@@ -102,45 +103,47 @@ class _PosPageState extends State<PosPage> {
                 ),
               ),
             ),
-            IconButton(
-              tooltip: 'Cambiar tema',
-              onPressed: widget.onToggleTheme,
-              icon: Icon(
-                widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            if (isDesktop) ...<Widget>[
+              IconButton(
+                tooltip: 'Cambiar tema',
+                onPressed: widget.onToggleTheme,
+                icon: Icon(
+                  widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                ),
               ),
-            ),
-            if (_esAdmin())
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(AppRoutes.empleados);
-                },
-                icon: const Icon(Icons.admin_panel_settings),
-                label: const Text('Gestión de Empleados'),
-              ),
-            if (_esAdmin())
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(AppRoutes.almacen);
-                },
-                icon: const Icon(Icons.inventory),
-                label: const Text('Recepción de Lotes'),
-              ),
-            if (_esAdmin())
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(AppRoutes.catalogo);
-                },
-                icon: const Icon(Icons.medication_liquid),
-                label: const Text('Catálogo'),
-              ),
-            if (_puedeVerReportes())
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(AppRoutes.reportes);
-                },
-                icon: const Icon(Icons.bar_chart),
-                label: const Text('Reportes'),
-              ),
+              if (_esAdmin())
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed(AppRoutes.empleados);
+                  },
+                  icon: const Icon(Icons.admin_panel_settings),
+                  label: const Text('Gestión de Empleados'),
+                ),
+              if (_esAdmin())
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed(AppRoutes.almacen);
+                  },
+                  icon: const Icon(Icons.inventory),
+                  label: const Text('Recepción de Lotes'),
+                ),
+              if (_esAdmin())
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed(AppRoutes.catalogo);
+                  },
+                  icon: const Icon(Icons.medication_liquid),
+                  label: const Text('Catálogo'),
+                ),
+              if (_puedeVerReportes())
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed(AppRoutes.reportes);
+                  },
+                  icon: const Icon(Icons.bar_chart),
+                  label: const Text('Reportes'),
+                ),
+            ],
             IconButton(
               tooltip: 'Cerrar sesión',
               onPressed: widget.onLogout,
@@ -148,6 +151,7 @@ class _PosPageState extends State<PosPage> {
             ),
           ],
         ),
+        drawer: isDesktop ? null : _buildNavDrawer(context),
         body: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
             if (constraints.maxWidth < 800) {
@@ -177,6 +181,92 @@ class _PosPageState extends State<PosPage> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildNavDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                Text(
+                  'Farmacia AWOS',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.session.nombre,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: Icon(
+              widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            ),
+            title: Text(widget.isDarkMode ? 'Modo Claro' : 'Modo Oscuro'),
+            onTap: widget.onToggleTheme,
+          ),
+          if (_esAdmin()) ...<Widget>[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings),
+              title: const Text('Gestión de Empleados'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed(AppRoutes.empleados);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.inventory),
+              title: const Text('Recepción de Lotes'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed(AppRoutes.almacen);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.medication_liquid),
+              title: const Text('Catálogo'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed(AppRoutes.catalogo);
+              },
+            ),
+          ],
+          if (_puedeVerReportes()) ...<Widget>[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.bar_chart),
+              title: const Text('Reportes'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed(AppRoutes.reportes);
+              },
+            ),
+          ],
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Cerrar sesión'),
+            onTap: widget.onLogout,
+          ),
+        ],
       ),
     );
   }
@@ -347,16 +437,17 @@ class _CatalogoPanel extends StatelessWidget {
 
                 return LayoutBuilder(
                   builder: (BuildContext context, BoxConstraints constraints) {
-                    final int crossAxisCount = constraints.maxWidth > 1100
-                        ? 3
-                        : (constraints.maxWidth > 700 ? 2 : 1);
+                    final double w = constraints.maxWidth;
+                    final int crossAxisCount = w > 900
+                        ? 4
+                        : (w > 600 ? 3 : (w > 370 ? 2 : 1));
                     return GridView.builder(
                       itemCount: state.resultados.length,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
-                        childAspectRatio: 1.4,
+                        mainAxisExtent: 220,
                       ),
                       itemBuilder: (BuildContext context, int index) {
                         final Medicamento medicamento = state.resultados[index];
@@ -450,6 +541,7 @@ class _MedicamentoCardState extends State<_MedicamentoCard> {
                       ? 'Stock: -- · Lote: --'
                       : 'Stock: ${widget.stock!.stockTotal} · Lote: ${widget.stock!.lotePrincipal ?? 'N/D'}',
                   style: const TextStyle(fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
                 ),
                 avatar: const Icon(Icons.inventory_2, size: 14),
               ),
