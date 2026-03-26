@@ -64,10 +64,12 @@ class AuthRepository {
     } catch (e) {
       final String errorMsg = e.toString();
       // Si el usuario no existe en Node, crear documento cascarón en Firestore.
+      // IMPORTANTE: no degradar perfiles existentes (admin/vendedor activos)
+      // cuando el backend responde 401 u otros errores transitorios.
       if (errorMsg.contains('Usuario no existe') ||
+          errorMsg.contains('Perfil no encontrado') ||
           errorMsg.contains('not found') ||
-          errorMsg.contains('404') ||
-          errorMsg.contains('401')) {
+          errorMsg.contains('404')) {
         await _crearUsuarioSinRol(uid, email, displayName);
         return (
           session: AuthSession(
@@ -122,19 +124,25 @@ class AuthRepository {
     String email,
     String displayName,
   ) async {
-    await _firestore
+    final DocumentReference<Map<String, dynamic>> ref = _firestore
         .collection('perfiles_seguridad')
-        .doc(uid)
-        .set(<String, dynamic>{
-          'uid': uid,
-          'email': email.toLowerCase(),
-          'nombre': displayName.trim().isNotEmpty
-              ? displayName
-              : email.split('@').first,
-          'role': 'sin_rol',
-          'activo': false,
-          'permisos': <String>[],
-        });
+        .doc(uid);
+
+    final DocumentSnapshot<Map<String, dynamic>> existing = await ref.get();
+    if (existing.exists) {
+      return;
+    }
+
+    await ref.set(<String, dynamic>{
+      'uid': uid,
+      'email': email.toLowerCase(),
+      'nombre': displayName.trim().isNotEmpty
+          ? displayName
+          : email.split('@').first,
+      'role': 'sin_rol',
+      'activo': false,
+      'permisos': <String>[],
+    });
   }
 
   /// Evalúa si el usuario tiene acceso habilitado según Firestore.
