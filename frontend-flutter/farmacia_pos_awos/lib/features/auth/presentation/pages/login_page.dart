@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:sign_in_button/sign_in_button.dart';
 
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -83,69 +84,12 @@ class _LoginPageState extends State<LoginPage> {
                           const SizedBox(height: 24),
                           SizedBox(
                                 width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  style: ButtonStyle(
-                                    backgroundColor:
-                                        const WidgetStatePropertyAll<Color>(
-                                          Colors.white,
-                                        ),
-                                    foregroundColor:
-                                        WidgetStatePropertyAll<Color>(
-                                          Colors.grey.shade800,
-                                        ),
-                                    overlayColor:
-                                        WidgetStateProperty.resolveWith<Color?>(
-                                          (Set<WidgetState> states) {
-                                            if (states.contains(
-                                              WidgetState.hovered,
-                                            )) {
-                                              return Colors.grey.shade100;
-                                            }
-                                            return Colors.transparent;
-                                          },
-                                        ),
-                                    side: WidgetStatePropertyAll<BorderSide>(
-                                      BorderSide(color: Colors.grey.shade300),
-                                    ),
-                                    shape:
-                                        WidgetStatePropertyAll<
-                                          RoundedRectangleBorder
-                                        >(
-                                          RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                        ),
-                                    padding:
-                                        const WidgetStatePropertyAll<
-                                          EdgeInsetsGeometry
-                                        >(
-                                          EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 12,
-                                          ),
-                                        ),
+                                child: SignInButton(
+                                  Buttons.google,
+                                  text: 'Ingresar con Google',
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  icon: Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF4285F4),
-                                      borderRadius: BorderRadius.circular(3),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        'G',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  label: const Text('Ingresar con Google'),
                                   onPressed: () {
                                     if (state.status ==
                                         AuthStatus.authenticating) {

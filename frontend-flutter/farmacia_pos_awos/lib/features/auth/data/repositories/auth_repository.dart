@@ -39,6 +39,45 @@ class AuthRepository {
     required String email,
     required String displayName,
   }) async {
+    final DocumentSnapshot<Map<String, dynamic>>? perfilExistente =
+        await _obtenerPerfilPorUidOEmail(uid: uid, email: email);
+
+    if (perfilExistente == null) {
+      await _crearUsuarioSinRol(uid, email, displayName);
+      return (
+        session: AuthSession(
+          token: 'pending',
+          uid: uid,
+          email: email,
+          nombre: displayName,
+          role: 'sin_rol',
+          permisos: const <String>[],
+        ),
+        isPending: true,
+      );
+    }
+
+    final Map<String, dynamic> perfilData =
+        perfilExistente.data() ?? <String, dynamic>{};
+    final List<String> permisosFirestore =
+        ((perfilData['permisos'] as List<dynamic>?) ?? <dynamic>[])
+            .map((dynamic permiso) => permiso.toString())
+            .toList(growable: false);
+
+    if (!_tieneAccesoAprobado(perfilData, permisosFirestore)) {
+      return (
+        session: AuthSession(
+          token: 'pending',
+          uid: (perfilData['uid'] as String?) ?? uid,
+          email: (perfilData['email'] as String?) ?? email,
+          nombre: (perfilData['nombre'] as String?) ?? displayName,
+          role: ((perfilData['role'] as String?) ?? 'sin_rol').toLowerCase(),
+          permisos: permisosFirestore,
+        ),
+        isPending: true,
+      );
+    }
+
     try {
       final response = await _apiClient.post(
         _loginEndpoint,
@@ -53,36 +92,8 @@ class AuthRepository {
       AuthTokenStore().setToken(token);
 
       final AuthSession session = _buildSessionFromData(data, token);
-      final bool accesoAprobado = await _tieneAccesoAprobado(
-        uid: uid,
-        email: email,
-        displayName: displayName,
-        permisosSesion: session.permisos,
-      );
-
-      return (session: session, isPending: !accesoAprobado);
+      return (session: session, isPending: false);
     } catch (e) {
-      final String errorMsg = e.toString();
-      // Si el usuario no existe en Node, crear documento cascarón en Firestore.
-      // IMPORTANTE: no degradar perfiles existentes (admin/vendedor activos)
-      // cuando el backend responde 401 u otros errores transitorios.
-      if (errorMsg.contains('Usuario no existe') ||
-          errorMsg.contains('Perfil no encontrado') ||
-          errorMsg.contains('not found') ||
-          errorMsg.contains('404')) {
-        await _crearUsuarioSinRol(uid, email, displayName);
-        return (
-          session: AuthSession(
-            token: 'pending',
-            uid: uid,
-            email: email,
-            nombre: displayName,
-            role: 'sin_rol',
-            permisos: const <String>[],
-          ),
-          isPending: true,
-        );
-      }
       rethrow;
     }
   }
@@ -124,68 +135,58 @@ class AuthRepository {
     String email,
     String displayName,
   ) async {
-    final QuerySnapshot<Map<String, dynamic>> existingByEmail = await _firestore
-        .collection('perfiles_seguridad')
-        .where('email', isEqualTo: email.toLowerCase())
-        .limit(1)
-        .get();
+    final DocumentSnapshot<Map<String, dynamic>>? perfilExistente =
+        await _obtenerPerfilPorUidOEmail(uid: uid, email: email);
 
-    if (existingByEmail.docs.isNotEmpty) {
+    if (perfilExistente != null) {
       return;
     }
 
-    final DocumentReference<Map<String, dynamic>> ref = _firestore
+    await _firestore
         .collection('perfiles_seguridad')
-        .doc(uid);
-
-    final DocumentSnapshot<Map<String, dynamic>> existing = await ref.get();
-    if (existing.exists) {
-      return;
-    }
-
-    await ref.set(<String, dynamic>{
-      'uid': uid,
-      'email': email.toLowerCase(),
-      'nombre': displayName.trim().isNotEmpty
-          ? displayName
-          : email.split('@').first,
-      'role': 'sin_rol',
-      'activo': false,
-      'permisos': <String>[],
-    });
+        .doc(uid)
+        .set(<String, dynamic>{
+          'uid': uid,
+          'email': email.toLowerCase(),
+          'nombre': displayName.trim().isNotEmpty
+              ? displayName
+              : email.split('@').first,
+          'role': 'sin_rol',
+          'activo': false,
+          'permisos': <String>[],
+        });
   }
 
   /// Evalúa si el usuario tiene acceso habilitado según Firestore.
-  Future<bool> _tieneAccesoAprobado({
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _obtenerPerfilPorUidOEmail({
     required String uid,
     required String email,
-    required String displayName,
-    required List<String> permisosSesion,
   }) async {
-    DocumentSnapshot<Map<String, dynamic>> doc = await _firestore
-        .collection('perfiles_seguridad')
+    final CollectionReference<Map<String, dynamic>> perfiles = _firestore
+        .collection('perfiles_seguridad');
+
+    final DocumentSnapshot<Map<String, dynamic>> byUid = await perfiles
         .doc(uid)
         .get();
-
-    if (!doc.exists) {
-      final QuerySnapshot<Map<String, dynamic>> existingByEmail =
-          await _firestore
-              .collection('perfiles_seguridad')
-              .where('email', isEqualTo: email.toLowerCase())
-              .limit(1)
-              .get();
-
-      if (existingByEmail.docs.isNotEmpty) {
-        doc = existingByEmail.docs.first;
-      }
+    if (byUid.exists) {
+      return byUid;
     }
 
-    if (!doc.exists) {
-      await _crearUsuarioSinRol(uid, email, displayName);
-      return false;
+    final QuerySnapshot<Map<String, dynamic>> byEmail = await perfiles
+        .where('email', isEqualTo: email.toLowerCase())
+        .limit(1)
+        .get();
+    if (byEmail.docs.isNotEmpty) {
+      return byEmail.docs.first;
     }
 
-    final Map<String, dynamic> data = doc.data() ?? <String, dynamic>{};
+    return null;
+  }
+
+  bool _tieneAccesoAprobado(
+    Map<String, dynamic> data,
+    List<String> permisosSesion,
+  ) {
     final bool activo = (data['activo'] as bool?) ?? false;
     final List<String> permisosFirestore =
         ((data['permisos'] as List<dynamic>?) ?? <dynamic>[])
