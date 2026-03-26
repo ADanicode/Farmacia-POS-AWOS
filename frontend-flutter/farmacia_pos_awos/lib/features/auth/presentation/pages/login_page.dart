@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:sign_in_button/sign_in_button.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -84,21 +84,43 @@ class _LoginPageState extends State<LoginPage> {
                           const SizedBox(height: 24),
                           SizedBox(
                                 width: double.infinity,
-                                child: SignInButton(
-                                  Buttons.google,
-                                  text: 'Ingresar con Google',
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                child: OutlinedButton.icon(
+                                  icon: const FaIcon(
+                                    FontAwesomeIcons.google,
+                                    color: Color(0xFF4285F4),
+                                    size: 20,
                                   ),
-                                  onPressed: () {
-                                    if (state.status ==
-                                        AuthStatus.authenticating) {
-                                      return;
-                                    }
-                                    context.read<AuthBloc>().add(
-                                      const AuthGoogleSignInRequested(),
-                                    );
-                                  },
+                                  label: const Text(
+                                    'Ingresar con Google',
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    side: BorderSide(
+                                      color: Colors.grey.shade300,
+                                      width: 1.5,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                      horizontal: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    overlayColor: Colors.grey.shade100,
+                                  ),
+                                  onPressed:
+                                      state.status == AuthStatus.authenticating
+                                      ? null
+                                      : () {
+                                          context.read<AuthBloc>().add(
+                                            const AuthGoogleSignInRequested(),
+                                          );
+                                        },
                                 ),
                               )
                               .animate(delay: 120.ms)

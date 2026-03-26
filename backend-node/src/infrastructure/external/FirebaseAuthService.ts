@@ -35,6 +35,7 @@ export class FirebaseAuthService implements IAuthService {
   public async login(loginDTO: LoginDTO): Promise<IAuthToken> {
     const validatedDTO = validarLoginDTO(loginDTO);
 
+    // Paso 1: Verificar idToken de Google
     let decodedToken: admin.auth.DecodedIdToken;
     try {
       decodedToken = await this.firebaseApp.auth().verifyIdToken(validatedDTO.idToken, true);
@@ -44,29 +45,51 @@ export class FirebaseAuthService implements IAuthService {
       throw authError;
     }
 
+    // Paso 2: Buscar DIRECTAMENTE por UID (la única fuente de verdad)
+    // NUNCA hacer fallback a email - es anti-patrón en Firebase
     let usuario: Usuario;
     try {
       usuario = await this.perfilesRepository.obtenerPorUid(decodedToken.uid);
-    } catch (_) {
-      try {
-        // IMPORTANTE: Normalizar email antes de buscar (consistencia case-insensitive)
-        const emailNormalizado = (decodedToken.email || '').toLowerCase();
-        usuario = await this.perfilesRepository.obtenerPorEmail(emailNormalizado);
-      } catch (error: any) {
-        const notFound = new Error(
-          `Perfil no encontrado en Firestore para UID ${decodedToken.uid} o email ${decodedToken.email}`,
-        );
-        notFound.name = 'NotFoundError';
-        throw notFound;
-      }
+    } catch (error: any) {
+      // Si no existe por UID, significa que el frontend no ha creado aún el perfil "sin_rol"
+      const notFound = new Error(
+        `Perfil no encontrado en Firestore para UID ${decodedToken.uid}. ` +
+        `El usuario debe ser aprobado por un admin primero.`,
+      );
+      notFound.name = 'NotFoundError';
+      throw notFound;
     }
 
+    // Paso 3: Validar que el usuario esté activo
     if (!usuario.isActivo()) {
-      const unauthorized = new Error('Usuario desactivado en perfiles_seguridad');
+      const unauthorized = new Error(
+        `Usuario ${decodedToken.uid} desactivado o pendiente de aprobación.`,
+      );
       unauthorized.name = 'UnauthorizedError';
       throw unauthorized;
     }
 
+    // Paso 4: Validar que tenga un rol válido (no "sin_rol")
+    const role = usuario.getRole().toLowerCase();
+    if (role === 'sin_rol') {
+      const unauthorized = new Error(
+        `Usuario ${decodedToken.uid} no tiene rol asignado. Pendiente de aprobación del admin.`,
+      );
+      unauthorized.name = 'UnauthorizedError';
+      throw unauthorized;
+    }
+
+    // Paso 5: Validar que tenga permisos
+    const permisos = usuario.getPermisos();
+    if (!permisos || permisos.length === 0) {
+      const unauthorized = new Error(
+        `Usuario ${decodedToken.uid} no tiene permisos asignados.`,
+      );
+      unauthorized.name = 'UnauthorizedError';
+      throw unauthorized;
+    }
+
+    // Paso 6: Emitir JWT solo si TODO está válido
     const jwtPayload = {
       uid: usuario.getId(), email: usuario.getEmail(), nombre: usuario.getNombre(),
       role: usuario.getRole(), permisos: usuario.getPermisos(),
