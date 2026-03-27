@@ -15,10 +15,10 @@ abstract class AppEndpoints {
     if (_nodeApiFromEnv.trim().isNotEmpty) {
       return _normalizeBaseUrl(_nodeApiFromEnv);
     }
-    if (kReleaseMode) {
+    if (kIsWeb) {
       return 'https://backend-node-production-2803.up.railway.app';
     }
-    return 'http://localhost:3000';
+    return 'https://farmacia-pos-awos.onrender.com';
   }
 
   static String get pythonBase {

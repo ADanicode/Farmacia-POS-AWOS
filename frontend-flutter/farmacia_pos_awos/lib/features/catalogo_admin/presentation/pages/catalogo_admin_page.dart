@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../domain/entities/categoria_catalogo.dart';
@@ -225,7 +226,7 @@ class _MedicamentosTab extends StatelessWidget {
       builder: (BuildContext context, CatalogoAdminState state) {
         if (state.status == CatalogoAdminStatus.loading ||
             state.status == CatalogoAdminStatus.initial) {
-          return const Center(child: CircularProgressIndicator());
+          return const _CapsuleLoading();
         }
 
         if (state.medicamentos.isEmpty) {
@@ -743,7 +744,7 @@ class _CategoriasTab extends StatelessWidget {
       builder: (BuildContext context, CatalogoAdminState state) {
         if (state.status == CatalogoAdminStatus.loading ||
             state.status == CatalogoAdminStatus.initial) {
-          return const Center(child: CircularProgressIndicator());
+          return const _CapsuleLoading();
         }
 
         if (state.categorias.isEmpty) {
@@ -793,7 +794,7 @@ class _ProveedoresTab extends StatelessWidget {
       builder: (BuildContext context, CatalogoAdminState state) {
         if (state.status == CatalogoAdminStatus.loading ||
             state.status == CatalogoAdminStatus.initial) {
-          return const Center(child: CircularProgressIndicator());
+          return const _CapsuleLoading();
         }
 
         if (state.proveedores.isEmpty) {
@@ -831,6 +832,21 @@ class _ProveedoresTab extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _CapsuleLoading extends StatelessWidget {
+  const _CapsuleLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Lottie.asset(
+        'assets/animations/Capsule.json',
+        width: 120,
+        height: 120,
+      ),
     );
   }
 }

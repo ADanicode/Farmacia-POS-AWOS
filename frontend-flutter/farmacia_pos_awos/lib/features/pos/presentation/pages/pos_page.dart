@@ -103,12 +103,9 @@ class _PosPageState extends State<PosPage> {
               ),
             ),
             if (isDesktop) ...<Widget>[
-              IconButton(
-                tooltip: 'Cambiar tema',
-                onPressed: widget.onToggleTheme,
-                icon: Icon(
-                  widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                ),
+              ThemeLottieToggleButton(
+                isDarkMode: widget.isDarkMode,
+                onToggleTheme: widget.onToggleTheme,
               ),
               if (_esAdmin())
                 TextButton.icon(
@@ -215,8 +212,18 @@ class _PosPageState extends State<PosPage> {
             ),
           ),
           ListTile(
-            leading: Icon(
-              widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            leading: SizedBox(
+              width: 28,
+              height: 28,
+              child: Lottie.asset(
+                'assets/animations/Light-dark mode button.json',
+                repeat: false,
+                animate: false,
+                frameRate: FrameRate.max,
+                delegates: LottieDelegates(),
+                options: LottieOptions(enableMergePaths: true),
+                onLoaded: (_) {},
+              ),
             ),
             title: Text(widget.isDarkMode ? 'Modo Claro' : 'Modo Oscuro'),
             onTap: widget.onToggleTheme,
@@ -426,7 +433,14 @@ class _CatalogoPanel extends StatelessWidget {
               child: BlocBuilder<SearchBloc, SearchState>(
                 builder: (BuildContext context, SearchState state) {
                   if (state.status == SearchStatus.loading) {
-                    return const Center(child: CircularProgressIndicator());
+                    return Center(
+                      child: Lottie.asset(
+                        'assets/animations/Capsule.json',
+                        width: 120,
+                        height: 120,
+                        repeat: true,
+                      ),
+                    );
                   }
                   if (state.status == SearchStatus.failure) {
                     return Center(
@@ -446,6 +460,9 @@ class _CatalogoPanel extends StatelessWidget {
                           final int crossAxisCount = w > 900
                               ? 4
                               : (w > 600 ? 3 : (w > 370 ? 2 : 1));
+                          final double childAspectRatio = w < 800
+                              ? (w < 450 ? 0.60 : 0.65)
+                              : 0.82;
                           return GridView.builder(
                             itemCount: state.resultados.length,
                             gridDelegate:
@@ -453,7 +470,7 @@ class _CatalogoPanel extends StatelessWidget {
                                   crossAxisCount: crossAxisCount,
                                   mainAxisSpacing: 12,
                                   crossAxisSpacing: 12,
-                                  mainAxisExtent: 220,
+                                  childAspectRatio: childAspectRatio,
                                 ),
                             itemBuilder: (BuildContext context, int index) {
                               final Medicamento medicamento =
@@ -656,6 +673,57 @@ class _CarritoPanel extends StatelessWidget {
     return value;
   }
 
+  Future<bool> _mostrarCompraExitosa(
+    BuildContext context,
+    PosTicketData ticketData,
+  ) async {
+    final bool? verTicket = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Lottie.asset(
+                  'assets/animations/purchase made.json',
+                  width: 150,
+                  repeat: false,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Compra completada',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Folio: ${ticketData.ventaId}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Nueva Venta'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Ver Ticket PDF'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return verTicket ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -667,9 +735,6 @@ class _CarritoPanel extends StatelessWidget {
             previous.lastTicketData != current.lastTicketData,
         listener: (BuildContext context, PosState state) {
           if (state.lastVentaId != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Venta procesada: ${state.lastVentaId}')),
-            );
             cedulaController.clear();
             medicoController.clear();
           }
@@ -677,17 +742,31 @@ class _CarritoPanel extends StatelessWidget {
             context.read<SearchBloc>().add(
               SearchStockDiscountApplied(state.lastTicketData!.items),
             );
-            showDialog<void>(
-              context: context,
-              builder: (BuildContext dialogContext) => TicketPreviewDialog(
-                ticketData: state.lastTicketData!,
-                cajero: session.nombre,
-                rol: session.role,
-                onClose: () {
-                  context.read<PosBloc>().add(const PosTicketPreviewCleared());
-                },
-              ),
-            );
+            _mostrarCompraExitosa(context, state.lastTicketData!).then((
+              bool verTicket,
+            ) {
+              if (!context.mounted) {
+                return;
+              }
+              if (!verTicket) {
+                context.read<PosBloc>().add(const PosTicketPreviewCleared());
+                return;
+              }
+
+              showDialog<void>(
+                context: context,
+                builder: (BuildContext dialogContext) => TicketPreviewDialog(
+                  ticketData: state.lastTicketData!,
+                  cajero: session.nombre,
+                  rol: session.role,
+                  onClose: () {
+                    context.read<PosBloc>().add(
+                      const PosTicketPreviewCleared(),
+                    );
+                  },
+                ),
+              );
+            });
           }
           if (state.errorMessage != null) {
             ScaffoldMessenger.of(
@@ -888,10 +967,13 @@ class _CarritoPanel extends StatelessWidget {
                         }
                       : null,
                   child: state.isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                      ? SizedBox(
+                          height: 28,
+                          width: 28,
+                          child: Lottie.asset(
+                            'assets/animations/Capsule.json',
+                            repeat: true,
+                          ),
                         )
                       : const Text('Cobrar'),
                 ),
@@ -899,6 +981,73 @@ class _CarritoPanel extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class ThemeLottieToggleButton extends StatefulWidget {
+  final bool isDarkMode;
+  final VoidCallback onToggleTheme;
+
+  const ThemeLottieToggleButton({
+    super.key,
+    required this.isDarkMode,
+    required this.onToggleTheme,
+  });
+
+  @override
+  State<ThemeLottieToggleButton> createState() =>
+      _ThemeLottieToggleButtonState();
+}
+
+class _ThemeLottieToggleButtonState extends State<ThemeLottieToggleButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  Duration _compositionDuration = const Duration(milliseconds: 700);
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+    _controller.value = widget.isDarkMode ? 1 : 0;
+  }
+
+  @override
+  void didUpdateWidget(covariant ThemeLottieToggleButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isDarkMode != widget.isDarkMode) {
+      _controller.animateTo(
+        widget.isDarkMode ? 1 : 0,
+        duration: _compositionDuration,
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Cambiar tema',
+      onPressed: widget.onToggleTheme,
+      icon: SizedBox(
+        width: 28,
+        height: 28,
+        child: Lottie.asset(
+          'assets/animations/Light-dark mode button.json',
+          controller: _controller,
+          repeat: false,
+          onLoaded: (composition) {
+            _compositionDuration = composition.duration;
+            _controller.value = widget.isDarkMode ? 1 : 0;
+          },
+        ),
       ),
     );
   }

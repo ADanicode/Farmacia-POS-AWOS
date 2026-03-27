@@ -78,6 +78,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/animations/
     - assets/animations/Doctor.json
     - assets/animations/Success.json
     - assets/animations/pharmacy.json
