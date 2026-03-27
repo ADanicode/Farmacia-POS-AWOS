@@ -113,6 +113,11 @@ export const CreateVentaSchema = z
       .max(100, 'IVA no puede ser mayor a 100')
       .default(19)
       .describe('Porcentaje de IVA a aplicar'),
+    montoRecibido: z
+      .number()
+      .positive('Monto recibido debe ser mayor a 0')
+      .optional()
+      .describe('Monto total recibido del cliente'),
     datosReceta: DatosRecetaSchema.optional().describe(
       'Datos del médico (OBLIGATORIO si hay productos controlados)',
     ),
@@ -155,6 +160,44 @@ export const CreateVentaSchema = z
       message:
         'La suma de pagos debe coincidir exactamente con el total de la venta (subtotal + IVA)',
       path: ['pagos'],
+    },
+  )
+  .refine(
+    (data: any) => {
+      const lineas = data.lineas as LineaVentaDTO[];
+      const ivaPercentaje = (data.ivaPercentaje as number) || 16;
+      const subtotal = lineas.reduce(
+        (sum: number, linea: LineaVentaDTO) =>
+          sum + linea.cantidad * linea.precioUnitario,
+        0,
+      );
+      const iva = subtotal * (ivaPercentaje / 100);
+      const totalEsperado = subtotal + iva;
+
+      if (typeof data.montoRecibido !== 'number') {
+        return true;
+      }
+
+      return data.montoRecibido + 0.01 >= totalEsperado;
+    },
+    {
+      message: 'montoRecibido debe ser mayor o igual al total de la venta',
+      path: ['montoRecibido'],
+    },
+  )
+  .refine(
+    (data: any) => {
+      const pagos = data.pagos as PagoDTO[];
+      const soloEfectivo = pagos.every((pago) => pago.tipo === TipoPago.EFECTIVO);
+      if (!soloEfectivo) {
+        return true;
+      }
+      return typeof data.montoRecibido === 'number';
+    },
+    {
+      message:
+        'montoRecibido es obligatorio cuando la venta se cobra solo en efectivo',
+      path: ['montoRecibido'],
     },
   );
 

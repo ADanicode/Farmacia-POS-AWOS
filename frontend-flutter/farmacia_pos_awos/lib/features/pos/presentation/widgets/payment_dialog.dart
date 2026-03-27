@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/pago_venta.dart';
 
+/// Resultado del asistente de cobro.
+class PaymentDialogResult {
+  /// Métodos de pago validados para procesar la venta.
+  final List<PagoVenta> pagos;
+
+  /// Monto recibido total reportado por caja.
+  final double montoRecibido;
+
+  /// Constructor principal del resultado del diálogo de cobro.
+  const PaymentDialogResult({required this.pagos, required this.montoRecibido});
+}
+
 /// Modal de cobro para seleccionar método de pago y validar montos.
 class PaymentDialog extends StatefulWidget {
   /// Total final que debe cuadrar con la suma de pagos.
@@ -163,7 +175,12 @@ class _PaymentDialogState extends State<PaymentDialog> {
         FilledButton(
           onPressed: canConfirm
               ? () {
-                  Navigator.of(context).pop(_buildPagos(total));
+                  Navigator.of(context).pop(
+                    PaymentDialogResult(
+                      pagos: _buildPagos(total),
+                      montoRecibido: _buildMontoRecibido(total),
+                    ),
+                  );
                 }
               : null,
           child: const Text('Confirmar pago'),
@@ -202,6 +219,23 @@ class _PaymentDialogState extends State<PaymentDialog> {
           PagoVenta(tipo: 'efectivo', monto: efectivo),
           PagoVenta(tipo: 'tarjeta', monto: tarjeta),
         ];
+    }
+  }
+
+  double _buildMontoRecibido(double total) {
+    switch (_method) {
+      case _PaymentMethod.efectivo:
+        return _roundMoney(_parse(_montoRecibidoController.text));
+      case _PaymentMethod.tarjeta:
+        return _roundMoney(total);
+      case _PaymentMethod.mixto:
+        final double efectivo = _roundMoney(
+          _parse(_montoEfectivoMixtoController.text),
+        );
+        final double tarjeta = _roundMoney(
+          _parse(_montoTarjetaMixtoController.text),
+        );
+        return _roundMoney(efectivo + tarjeta);
     }
   }
 

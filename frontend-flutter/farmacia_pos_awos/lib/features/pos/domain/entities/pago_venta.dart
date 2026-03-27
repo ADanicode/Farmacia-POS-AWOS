@@ -11,8 +11,16 @@ class PagoVenta extends Equatable {
   /// Referencia opcional para pagos electrónicos.
   final String? referencia;
 
+  /// Monto total recibido reportado en caja para la transacción.
+  final double? montoRecibido;
+
   /// Constructor principal del método de pago.
-  const PagoVenta({required this.tipo, required this.monto, this.referencia});
+  const PagoVenta({
+    required this.tipo,
+    required this.monto,
+    this.referencia,
+    this.montoRecibido,
+  });
 
   /// Serializa este pago al payload esperado por backend.
   Map<String, dynamic> toJson() {
@@ -21,9 +29,10 @@ class PagoVenta extends Equatable {
       'monto': monto,
       if (referencia != null && referencia!.trim().isNotEmpty)
         'referencia': referencia,
+      if (montoRecibido != null) 'montoRecibido': montoRecibido,
     };
   }
 
   @override
-  List<Object?> get props => <Object?>[tipo, monto, referencia];
+  List<Object?> get props => <Object?>[tipo, monto, referencia, montoRecibido];
 }

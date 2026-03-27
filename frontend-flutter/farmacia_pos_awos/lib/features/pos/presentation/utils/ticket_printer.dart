@@ -16,6 +16,8 @@ class TicketPrinter {
     required double subtotal,
     required double iva,
     required double total,
+    required double montoRecibido,
+    required double cambio,
     String? cedulaMedica,
   }) async {
     final pw.Document doc = pw.Document();
@@ -111,6 +113,20 @@ class TicketPrinter {
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
                 ),
+              ),
+            ),
+            pw.Align(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Text(
+                'RECIBIDO: \$ ${montoRecibido.toStringAsFixed(2)}',
+                style: pw.TextStyle(fontSize: 9),
+              ),
+            ),
+            pw.Align(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Text(
+                'CAMBIO:   \$ ${cambio.toStringAsFixed(2)}',
+                style: pw.TextStyle(fontSize: 9),
               ),
             ),
             if (cedulaMedica != null &&

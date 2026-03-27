@@ -46,6 +46,9 @@ class VentaReporte extends Equatable {
   /// Cambio histórico del ticket.
   final double cambio;
 
+  /// Monto recibido histórico del ticket.
+  final double montoRecibido;
+
   /// Cédula médica si la venta tuvo auditoría.
   final String? cedulaMedico;
 
@@ -63,6 +66,7 @@ class VentaReporte extends Equatable {
     this.subtotal = 0,
     this.iva = 0,
     this.cambio = 0,
+    this.montoRecibido = 0,
     this.cedulaMedico,
   });
 
@@ -119,6 +123,9 @@ class VentaReporte extends Equatable {
       pagos: pagos,
       subtotal: subtotal,
       iva: iva,
+      montoRecibido:
+          (json['montoRecibido'] as num?)?.toDouble() ??
+          pagos.fold<double>(0, (double acc, PagoVenta p) => acc + p.monto),
       cambio: (json['cambio'] as num?)?.toDouble() ?? 0,
       cedulaMedico: json['datosReceta'] is Map<String, dynamic>
           ? json['datosReceta']['ciMedico']?.toString()
@@ -281,6 +288,7 @@ class VentaReporte extends Equatable {
     pagos,
     subtotal,
     iva,
+    montoRecibido,
     cambio,
     cedulaMedico,
   ];

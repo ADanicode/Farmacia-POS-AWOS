@@ -150,6 +150,7 @@ export class ReporteService {
           subtotal: v.getSubtotal(),
           iva: v.getIVA(),
           total: v.getTotal(),
+          montoRecibido: v.getMontoRecibido(),
           cambio: v.getCambio(),
           estado: v.getEstado(),
           cantidadProductos: v.getLineas().length,

@@ -14,6 +14,9 @@ class VentaProcesadaResult {
   /// Cambio calculado y devuelto por backend.
   final double cambio;
 
+  /// Monto recibido real en caja reportado por backend.
+  final double montoRecibido;
+
   /// Fecha real de la venta entregada por backend.
   final DateTime fechaVenta;
 
@@ -21,6 +24,7 @@ class VentaProcesadaResult {
   const VentaProcesadaResult({
     required this.ventaId,
     required this.total,
+    required this.montoRecibido,
     required this.cambio,
     required this.fechaVenta,
   });
@@ -54,6 +58,7 @@ class VentasRepository {
     required String usuarioId,
     required List<PosItem> items,
     required List<PagoVenta> pagos,
+    required double montoRecibido,
     required bool requiereAuditoria,
     String? cedulaMedico,
     String? nombreMedico,
@@ -89,6 +94,7 @@ class VentasRepository {
       'pagos': pagos
           .map((PagoVenta pago) => pago.toJson())
           .toList(growable: false),
+      'montoRecibido': _redondearMoneda(montoRecibido),
       'ivaPercentaje': _ivaPorcentaje,
       'subtotal': subtotal,
       'total': total,
@@ -119,6 +125,9 @@ class VentasRepository {
     return VentaProcesadaResult(
       ventaId: (data['ventaId'] as String?) ?? '',
       total: (data['total'] as num?)?.toDouble() ?? 0,
+      montoRecibido:
+          (data['montoRecibido'] as num?)?.toDouble() ??
+          _redondearMoneda(montoRecibido),
       cambio: (data['cambio'] as num?)?.toDouble() ?? 0,
       fechaVenta: fechaVenta,
     );

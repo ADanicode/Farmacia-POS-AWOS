@@ -51,6 +51,7 @@ export class FirestoreVentaRepository implements IVentaRepository {
         subtotal: venta.getSubtotal(),
         iva: venta.getIVA(),
         total: venta.getTotal(),
+        montoRecibido: venta.getMontoRecibido(),
         cambio: venta.getCambio(),
         ivaPercentaje: 16, 
         tieneProductosControlados: venta.getTieneProductosControlados(),

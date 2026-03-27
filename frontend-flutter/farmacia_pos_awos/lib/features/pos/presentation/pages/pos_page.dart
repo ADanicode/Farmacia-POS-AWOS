@@ -8,7 +8,6 @@ import 'package:farmacia_pos_awos/core/router/route_guards.dart';
 import 'package:farmacia_pos_awos/features/auth/domain/entities/auth_session.dart';
 import 'package:farmacia_pos_awos/features/pos/data/repositories/ventas_repository.dart';
 import 'package:farmacia_pos_awos/features/pos/domain/entities/medicamento_stock.dart';
-import 'package:farmacia_pos_awos/features/pos/domain/entities/pago_venta.dart';
 import 'package:farmacia_pos_awos/features/pos/presentation/widgets/payment_dialog.dart';
 import 'package:farmacia_pos_awos/features/pos/presentation/widgets/ticket_preview_dialog.dart';
 import 'package:lottie/lottie.dart';
@@ -297,23 +296,27 @@ class _MobilePosLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Expanded(
-          child: _CatalogoPanel(
-            searchController: searchController,
-            onManualRefresh: onManualRefresh,
+    return SafeArea(
+      child: Column(
+        children: <Widget>[
+          Expanded(
+            flex: 2,
+            child: _CatalogoPanel(
+              searchController: searchController,
+              onManualRefresh: onManualRefresh,
+            ),
           ),
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: _CarritoPanel(
-            cedulaController: cedulaController,
-            medicoController: medicoController,
-            session: session,
+          const Divider(height: 1),
+          Expanded(
+            flex: 3,
+            child: _CarritoPanel(
+              cedulaController: cedulaController,
+              medicoController: medicoController,
+              session: session,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -419,49 +422,54 @@ class _CatalogoPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: BlocBuilder<SearchBloc, SearchState>(
-              builder: (BuildContext context, SearchState state) {
-                if (state.status == SearchStatus.loading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state.status == SearchStatus.failure) {
-                  return Center(
-                    child: Text(state.errorMessage ?? 'Error de búsqueda'),
-                  );
-                }
-                if (state.resultados.isEmpty) {
-                  return const Center(
-                    child: Text('No hay medicamentos para mostrar'),
-                  );
-                }
-
-                return LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) {
-                    final double w = constraints.maxWidth;
-                    final int crossAxisCount = w > 900
-                        ? 4
-                        : (w > 600 ? 3 : (w > 370 ? 2 : 1));
-                    return GridView.builder(
-                      itemCount: state.resultados.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        mainAxisExtent: 220,
-                      ),
-                      itemBuilder: (BuildContext context, int index) {
-                        final Medicamento medicamento = state.resultados[index];
-                        final MedicamentoStock? stock =
-                            state.stockPorMedicamento[medicamento.id];
-                        return _MedicamentoCard(
-                          medicamento: medicamento,
-                          stock: stock,
-                        );
-                      },
+            child: SizedBox.expand(
+              child: BlocBuilder<SearchBloc, SearchState>(
+                builder: (BuildContext context, SearchState state) {
+                  if (state.status == SearchStatus.loading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (state.status == SearchStatus.failure) {
+                    return Center(
+                      child: Text(state.errorMessage ?? 'Error de búsqueda'),
                     );
-                  },
-                );
-              },
+                  }
+                  if (state.resultados.isEmpty) {
+                    return const Center(
+                      child: Text('No hay medicamentos para mostrar'),
+                    );
+                  }
+
+                  return LayoutBuilder(
+                    builder:
+                        (BuildContext context, BoxConstraints constraints) {
+                          final double w = constraints.maxWidth;
+                          final int crossAxisCount = w > 900
+                              ? 4
+                              : (w > 600 ? 3 : (w > 370 ? 2 : 1));
+                          return GridView.builder(
+                            itemCount: state.resultados.length,
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  mainAxisExtent: 220,
+                                ),
+                            itemBuilder: (BuildContext context, int index) {
+                              final Medicamento medicamento =
+                                  state.resultados[index];
+                              final MedicamentoStock? stock =
+                                  state.stockPorMedicamento[medicamento.id];
+                              return _MedicamentoCard(
+                                medicamento: medicamento,
+                                stock: stock,
+                              );
+                            },
+                          );
+                        },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -602,6 +610,52 @@ class _CarritoPanel extends StatelessWidget {
     required this.session,
   });
 
+  Future<int?> _pedirCantidadManual(
+    BuildContext context,
+    int cantidadActual,
+  ) async {
+    final TextEditingController controller = TextEditingController(
+      text: cantidadActual.toString(),
+    );
+
+    final int? value = await showDialog<int>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Actualizar cantidad'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Cantidad',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final int? parsed = int.tryParse(controller.text.trim());
+                if (parsed == null || parsed <= 0) {
+                  return;
+                }
+                Navigator.of(dialogContext).pop(parsed);
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return value;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -678,8 +732,48 @@ class _CarritoPanel extends StatelessWidget {
                               ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 title: Text(item.medicamento.nombre),
-                                subtitle: Text(
-                                  '\$ ${item.medicamento.precio.toStringAsFixed(2)} MXN x ${item.cantidad}',
+                                subtitle: Row(
+                                  children: <Widget>[
+                                    Text(
+                                      '\$ ${item.medicamento.precio.toStringAsFixed(2)} MXN',
+                                    ),
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: () async {
+                                        final int? nuevaCantidad =
+                                            await _pedirCantidadManual(
+                                              context,
+                                              item.cantidad,
+                                            );
+                                        if (!context.mounted ||
+                                            nuevaCantidad == null) {
+                                          return;
+                                        }
+                                        context.read<PosBloc>().add(
+                                          PosUpdateItemQuantity(
+                                            item.medicamento.id,
+                                            nuevaCantidad,
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        child: Text(
+                                          'x ${item.cantidad} (editar)',
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 leading: item.loteSugerido != null
                                     ? Tooltip(
@@ -771,8 +865,8 @@ class _CarritoPanel extends StatelessWidget {
                 child: FilledButton(
                   onPressed: state.canCheckout
                       ? () async {
-                          final List<PagoVenta>? pagos =
-                              await showDialog<List<PagoVenta>>(
+                          final PaymentDialogResult? pagoResult =
+                              await showDialog<PaymentDialogResult>(
                                 context: context,
                                 builder: (BuildContext dialogContext) {
                                   return PaymentDialog(total: state.total);
@@ -780,13 +874,16 @@ class _CarritoPanel extends StatelessWidget {
                               );
 
                           if (!context.mounted ||
-                              pagos == null ||
-                              pagos.isEmpty) {
+                              pagoResult == null ||
+                              pagoResult.pagos.isEmpty) {
                             return;
                           }
 
                           context.read<PosBloc>().add(
-                            PosCheckoutRequested(pagos),
+                            PosCheckoutRequested(
+                              pagoResult.pagos,
+                              montoRecibido: pagoResult.montoRecibido,
+                            ),
                           );
                         }
                       : null,

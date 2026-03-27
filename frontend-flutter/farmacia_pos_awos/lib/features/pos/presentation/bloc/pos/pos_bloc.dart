@@ -24,6 +24,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     // PATRON: BLOC - Aísla reglas de estado y flujo de caja de la UI.
     on<PosItemAdded>(_onItemAdded);
     on<PosItemIncreased>(_onItemIncreased);
+    on<PosUpdateItemQuantity>(_onUpdateItemQuantity);
     on<PosItemDecreased>(_onItemDecreased);
     on<PosItemRemoved>(_onItemRemoved);
     on<PosCedulaMedicoChanged>(_onCedulaChanged);
@@ -70,6 +71,42 @@ class PosBloc extends Bloc<PosEvent, PosState> {
         .map(
           (PosItem item) => item.medicamento.id == event.medicamentoId
               ? item.copyWith(cantidad: item.cantidad + 1)
+              : item,
+        )
+        .toList(growable: false);
+
+    emit(
+      state.copyWith(
+        items: updated,
+        clearErrorMessage: true,
+        clearLastVentaId: true,
+      ),
+    );
+  }
+
+  /// Actualiza la cantidad de una línea con valor manual ingresado por el cajero.
+  Future<void> _onUpdateItemQuantity(
+    PosUpdateItemQuantity event,
+    Emitter<PosState> emit,
+  ) async {
+    if (event.newQuantity <= 0) {
+      final List<PosItem> updated = state.items
+          .where((PosItem item) => item.medicamento.id != event.medicamentoId)
+          .toList(growable: false);
+      emit(
+        state.copyWith(
+          items: updated,
+          clearErrorMessage: true,
+          clearLastVentaId: true,
+        ),
+      );
+      return;
+    }
+
+    final List<PosItem> updated = state.items
+        .map(
+          (PosItem item) => item.medicamento.id == event.medicamentoId
+              ? item.copyWith(cantidad: event.newQuantity)
               : item,
         )
         .toList(growable: false);
@@ -169,6 +206,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
         usuarioId: _usuarioId,
         items: state.items,
         pagos: event.pagos,
+        montoRecibido: event.montoRecibido,
         requiereAuditoria: state.tieneControlados,
         cedulaMedico: state.cedulaMedico.trim(),
         nombreMedico: state.nombreMedico.trim(),
@@ -188,6 +226,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
             iva: iva,
             total: total,
             pagos: List<PagoVenta>.from(event.pagos),
+            montoRecibido: result.montoRecibido,
             cambio: result.cambio,
             fechaVenta: result.fechaVenta,
             cedulaMedico: state.tieneControlados

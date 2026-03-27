@@ -88,6 +88,7 @@ export class VentaService {
         lineas,
         pagos,
         ventaValidada.ivaPercentaje,
+        ventaValidada.montoRecibido,
         datosReceta,
       );
 

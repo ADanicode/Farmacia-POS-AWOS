@@ -51,6 +51,21 @@ class PosItemIncreased extends PosEvent {
   List<Object?> get props => <Object?>[medicamentoId];
 }
 
+/// Evento para definir manualmente la cantidad de una línea.
+class PosUpdateItemQuantity extends PosEvent {
+  /// ID del medicamento a actualizar.
+  final int medicamentoId;
+
+  /// Nueva cantidad deseada.
+  final int newQuantity;
+
+  /// Constructor del evento de actualización manual de cantidad.
+  const PosUpdateItemQuantity(this.medicamentoId, this.newQuantity);
+
+  @override
+  List<Object?> get props => <Object?>[medicamentoId, newQuantity];
+}
+
 /// Evento para eliminar una línea completa del carrito.
 class PosItemRemoved extends PosEvent {
   /// ID del medicamento a eliminar.
@@ -92,11 +107,14 @@ class PosCheckoutRequested extends PosEvent {
   /// Métodos de pago confirmados en el asistente de cobro.
   final List<PagoVenta> pagos;
 
+  /// Monto total recibido por caja para calcular cambio real.
+  final double montoRecibido;
+
   /// Constructor del evento de cobro.
-  const PosCheckoutRequested(this.pagos);
+  const PosCheckoutRequested(this.pagos, {required this.montoRecibido});
 
   @override
-  List<Object?> get props => <Object?>[pagos];
+  List<Object?> get props => <Object?>[pagos, montoRecibido];
 }
 
 /// Evento para limpiar datos del ticket después de cerrar el preview.

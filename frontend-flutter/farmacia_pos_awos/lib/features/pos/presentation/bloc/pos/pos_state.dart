@@ -26,6 +26,9 @@ class PosTicketData extends Equatable {
   /// Cambio devuelto por backend.
   final double cambio;
 
+  /// Monto total recibido en caja para esta venta.
+  final double montoRecibido;
+
   /// Cédula médica registrada cuando aplica.
   final String? cedulaMedico;
 
@@ -41,6 +44,7 @@ class PosTicketData extends Equatable {
     required this.total,
     required this.pagos,
     required this.cambio,
+    required this.montoRecibido,
     required this.fechaVenta,
     this.cedulaMedico,
   });
@@ -54,6 +58,7 @@ class PosTicketData extends Equatable {
     total,
     pagos,
     cambio,
+    montoRecibido,
     fechaVenta,
     cedulaMedico,
   ];

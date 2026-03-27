@@ -265,6 +265,11 @@ export class Venta {
   private readonly total: number;
 
   /**
+    * Monto recibido total reportado en caja
+    */
+    private readonly montoRecibido: number;
+
+    /**
    * Cambio entregado (si hay pago en efectivo)
    */
   private readonly cambio: number;
@@ -295,6 +300,7 @@ export class Venta {
     subtotal: number,
     iva: number,
     total: number,
+    montoRecibido: number,
     cambio: number,
     estado: 'pendiente' | 'procesada' | 'anulada' = 'pendiente',
     datosReceta?: DatosReceta,
@@ -307,6 +313,7 @@ export class Venta {
     this.subtotal = subtotal;
     this.iva = iva;
     this.total = total;
+    this.montoRecibido = montoRecibido;
     this.cambio = cambio;
     this.estado = estado;
     this.datosReceta = datosReceta;
@@ -332,6 +339,7 @@ export class Venta {
     lineas: LineaVenta[],
     pagos: Pago[],
     ivaPercentaje: number = 19,
+    montoRecibido?: number,
     datosReceta?: DatosReceta,
   ): Venta {
     if (lineas.length === 0) {
@@ -360,15 +368,11 @@ export class Venta {
       );
     }
 
-    let cambio = 0;
-    const pagosEfectivo = pagos.filter((p) => p.getTipo() === TipoPago.EFECTIVO);
-    if (pagosEfectivo.length > 0) {
-      const totalEfectivo = pagosEfectivo.reduce(
-        (sum, p) => sum + p.getMonto(),
-        0,
-      );
-      cambio = Math.max(0, totalEfectivo - total);
+    const montoRecibidoFinal = montoRecibido ?? totalPagado;
+    if (montoRecibidoFinal + 0.01 < total) {
+      throw new Error('Monto recibido insuficiente para cubrir el total');
     }
+    const cambio = Math.max(0, montoRecibidoFinal - total);
 
     return new Venta(
       id,
@@ -378,6 +382,7 @@ export class Venta {
       subtotal,
       iva,
       total,
+      montoRecibidoFinal,
       cambio,
       'pendiente',
       datosReceta,
@@ -425,6 +430,7 @@ export class Venta {
       data.subtotal,
       data.iva,
       data.total,
+      data.montoRecibido ?? data.total,
       data.cambio,
       data.estado,
       datosReceta,
@@ -504,6 +510,10 @@ export class Venta {
     return this.total;
   }
 
+  public getMontoRecibido(): number {
+    return this.montoRecibido;
+  }
+
   public getCambio(): number {
     return this.cambio;
   }
@@ -545,6 +555,7 @@ export class Venta {
       subtotal: this.subtotal,
       iva: this.iva,
       total: this.total,
+      montoRecibido: this.montoRecibido,
       cambio: this.cambio,
       tieneProductosControlados: this.tieneProductosControlados,
       estado: this.estado,

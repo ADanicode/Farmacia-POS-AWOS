@@ -66,6 +66,7 @@ export class VentasController {
         data: {
           ventaId: ventaProcesada.getId(),
           total: ventaProcesada.getTotal(),
+          montoRecibido: ventaProcesada.getMontoRecibido(),
           estado: ventaProcesada.getEstado(),
           fechaVenta: ventaProcesada.getFechaVenta().toISOString(),
           cambio: ventaProcesada.getCambio()

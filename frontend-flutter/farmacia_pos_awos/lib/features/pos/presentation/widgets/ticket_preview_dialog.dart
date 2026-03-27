@@ -289,7 +289,7 @@ class _ThermalTicketPreview extends StatelessWidget {
                   );
                 }),
                 Text(
-                  'Monto Recibido: \$ ${_montoRecibido(ticketData).toStringAsFixed(2)}',
+                  'Monto Recibido: \$ ${ticketData.montoRecibido.toStringAsFixed(2)}',
                   style: lineStyle,
                 ),
                 Text(
@@ -315,10 +315,6 @@ class _ThermalTicketPreview extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  double _montoRecibido(PosTicketData data) {
-    return data.pagos.fold<double>(0, (double acum, pago) => acum + pago.monto);
   }
 
   String _metodoPagoGeneral(PosTicketData data) {
