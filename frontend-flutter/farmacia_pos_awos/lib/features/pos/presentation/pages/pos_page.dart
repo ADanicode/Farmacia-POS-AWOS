@@ -213,16 +213,19 @@ class _PosPageState extends State<PosPage> {
           ),
           ListTile(
             leading: SizedBox(
-              width: 28,
-              height: 28,
-              child: Lottie.asset(
-                'assets/animations/Light-dark mode button.json',
-                repeat: false,
-                animate: false,
-                frameRate: FrameRate.max,
-                delegates: LottieDelegates(),
-                options: LottieOptions(enableMergePaths: true),
-                onLoaded: (_) {},
+              width: 34,
+              height: 34,
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Lottie.asset(
+                    'assets/animations/Light-dark mode button.json',
+                    repeat: false,
+                    animate: false,
+                  ),
+                ),
               ),
             ),
             title: Text(widget.isDarkMode ? 'Modo Claro' : 'Modo Oscuro'),
@@ -303,11 +306,15 @@ class _MobilePosLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double height = MediaQuery.of(context).size.height;
+    final int catalogFlex = height < 780 ? 3 : 2;
+    final int carritoFlex = height < 780 ? 2 : 3;
+
     return SafeArea(
       child: Column(
         children: <Widget>[
           Expanded(
-            flex: 2,
+            flex: catalogFlex,
             child: _CatalogoPanel(
               searchController: searchController,
               onManualRefresh: onManualRefresh,
@@ -315,7 +322,7 @@ class _MobilePosLayout extends StatelessWidget {
           ),
           const Divider(height: 1),
           Expanded(
-            flex: 3,
+            flex: carritoFlex,
             child: _CarritoPanel(
               cedulaController: cedulaController,
               medicoController: medicoController,
@@ -436,8 +443,8 @@ class _CatalogoPanel extends StatelessWidget {
                     return Center(
                       child: Lottie.asset(
                         'assets/animations/Capsule.json',
-                        width: 120,
-                        height: 120,
+                        width: 180,
+                        height: 180,
                         repeat: true,
                       ),
                     );
@@ -457,11 +464,11 @@ class _CatalogoPanel extends StatelessWidget {
                     builder:
                         (BuildContext context, BoxConstraints constraints) {
                           final double w = constraints.maxWidth;
-                          final int crossAxisCount = w > 900
+                          final int crossAxisCount = w > 980
                               ? 4
-                              : (w > 600 ? 3 : (w > 370 ? 2 : 1));
+                              : (w > 780 ? 3 : (w > 520 ? 2 : 1));
                           final double childAspectRatio = w < 800
-                              ? (w < 450 ? 0.60 : 0.65)
+                              ? (w < 520 ? 1.08 : 0.82)
                               : 0.82;
                           return GridView.builder(
                             itemCount: state.resultados.length,
@@ -602,6 +609,13 @@ class _MedicamentoCardState extends State<_MedicamentoCard> {
                 curve: Curves.easeOutBack,
                 child: FilledButton.icon(
                   onPressed: _onAgregarPressed,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    textStyle: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   icon: const Icon(Icons.add_shopping_cart),
                   label: const Text('Agregar'),
                 ),
@@ -689,7 +703,7 @@ class _CarritoPanel extends StatelessWidget {
               children: <Widget>[
                 Lottie.asset(
                   'assets/animations/purchase made.json',
-                  width: 150,
+                  width: 170,
                   repeat: false,
                 ),
                 const SizedBox(height: 10),
@@ -942,6 +956,13 @@ class _CarritoPanel extends StatelessWidget {
                 width: double.infinity,
                 // CUMPLE HU-24: BOTON COBRAR SE BLOQUEA SI CARRITO VACIO O AUDITORIA INCOMPLETA.
                 child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                    textStyle: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   onPressed: state.canCheckout
                       ? () async {
                           final PaymentDialogResult? pagoResult =
@@ -968,8 +989,8 @@ class _CarritoPanel extends StatelessWidget {
                       : null,
                   child: state.isSubmitting
                       ? SizedBox(
-                          height: 28,
-                          width: 28,
+                          height: 44,
+                          width: 44,
                           child: Lottie.asset(
                             'assets/animations/Capsule.json',
                             repeat: true,
@@ -1037,16 +1058,23 @@ class _ThemeLottieToggleButtonState extends State<ThemeLottieToggleButton>
       tooltip: 'Cambiar tema',
       onPressed: widget.onToggleTheme,
       icon: SizedBox(
-        width: 28,
-        height: 28,
-        child: Lottie.asset(
-          'assets/animations/Light-dark mode button.json',
-          controller: _controller,
-          repeat: false,
-          onLoaded: (composition) {
-            _compositionDuration = composition.duration;
-            _controller.value = widget.isDarkMode ? 1 : 0;
-          },
+        width: 38,
+        height: 38,
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: Lottie.asset(
+              'assets/animations/Light-dark mode button.json',
+              controller: _controller,
+              repeat: false,
+              onLoaded: (composition) {
+                _compositionDuration = composition.duration;
+                _controller.value = widget.isDarkMode ? 1 : 0;
+              },
+            ),
+          ),
         ),
       ),
     );

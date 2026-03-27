@@ -240,8 +240,27 @@ class _PaymentDialogState extends State<PaymentDialog> {
   }
 
   double _parse(String value) {
-    final String normalized = value.replaceAll(',', '.').trim();
-    return double.tryParse(normalized) ?? 0;
+    final String raw = value.trim();
+    if (raw.isEmpty) {
+      return 0;
+    }
+
+    String cleaned = raw.replaceAll(RegExp(r'[^0-9,\.]'), '');
+    final int lastComma = cleaned.lastIndexOf(',');
+    final int lastDot = cleaned.lastIndexOf('.');
+
+    if (lastComma != -1 && lastDot != -1) {
+      // Si ambos separadores existen, tomar el último como decimal.
+      if (lastComma > lastDot) {
+        cleaned = cleaned.replaceAll('.', '').replaceAll(',', '.');
+      } else {
+        cleaned = cleaned.replaceAll(',', '');
+      }
+    } else {
+      cleaned = cleaned.replaceAll(',', '.');
+    }
+
+    return double.tryParse(cleaned) ?? 0;
   }
 
   double _roundMoney(double value) {

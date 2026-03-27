@@ -125,7 +125,8 @@ class VentaReporte extends Equatable {
       iva: iva,
       montoRecibido:
           (json['montoRecibido'] as num?)?.toDouble() ??
-          pagos.fold<double>(0, (double acc, PagoVenta p) => acc + p.monto),
+          (((json['total'] as num?)?.toDouble() ?? total) +
+              ((json['cambio'] as num?)?.toDouble() ?? 0)),
       cambio: (json['cambio'] as num?)?.toDouble() ?? 0,
       cedulaMedico: json['datosReceta'] is Map<String, dynamic>
           ? json['datosReceta']['ciMedico']?.toString()
