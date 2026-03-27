@@ -440,11 +440,14 @@ class _CatalogoPanel extends StatelessWidget {
               child: BlocBuilder<SearchBloc, SearchState>(
                 builder: (BuildContext context, SearchState state) {
                   if (state.status == SearchStatus.loading) {
+                    final bool isDesktop =
+                        MediaQuery.of(context).size.width >= 1024;
+                    final double loadingSize = isDesktop ? 240 : 180;
                     return Center(
                       child: Lottie.asset(
                         'assets/animations/Capsule.json',
-                        width: 180,
-                        height: 180,
+                        width: loadingSize,
+                        height: loadingSize,
                         repeat: true,
                       ),
                     );
@@ -541,6 +544,8 @@ class _MedicamentoCardState extends State<_MedicamentoCard> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 760;
+
     return Card(
       elevation: 3,
       shadowColor: const Color(0x1A0D3B66),
@@ -610,9 +615,9 @@ class _MedicamentoCardState extends State<_MedicamentoCard> {
                 child: FilledButton.icon(
                   onPressed: _onAgregarPressed,
                   style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(54),
-                    textStyle: const TextStyle(
-                      fontSize: 26,
+                    minimumSize: Size.fromHeight(isMobile ? 48 : 54),
+                    textStyle: TextStyle(
+                      fontSize: isMobile ? 20 : 24,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -691,6 +696,9 @@ class _CarritoPanel extends StatelessWidget {
     BuildContext context,
     PosTicketData ticketData,
   ) async {
+    final bool isDesktop = MediaQuery.of(context).size.width >= 1024;
+    final double successSize = isDesktop ? 220 : 170;
+
     final bool? verTicket = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -703,7 +711,7 @@ class _CarritoPanel extends StatelessWidget {
               children: <Widget>[
                 Lottie.asset(
                   'assets/animations/purchase made.json',
-                  width: 170,
+                  width: successSize,
                   repeat: false,
                 ),
                 const SizedBox(height: 10),
@@ -740,6 +748,10 @@ class _CarritoPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double viewportWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = viewportWidth < 760;
+    final bool isDesktop = viewportWidth >= 1024;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: BlocConsumer<PosBloc, PosState>(
@@ -957,9 +969,9 @@ class _CarritoPanel extends StatelessWidget {
                 // CUMPLE HU-24: BOTON COBRAR SE BLOQUEA SI CARRITO VACIO O AUDITORIA INCOMPLETA.
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    textStyle: const TextStyle(
-                      fontSize: 30,
+                    minimumSize: Size.fromHeight(isMobile ? 52 : 56),
+                    textStyle: TextStyle(
+                      fontSize: isMobile ? 24 : 28,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -989,8 +1001,8 @@ class _CarritoPanel extends StatelessWidget {
                       : null,
                   child: state.isSubmitting
                       ? SizedBox(
-                          height: 44,
-                          width: 44,
+                          height: isDesktop ? 56 : 42,
+                          width: isDesktop ? 56 : 42,
                           child: Lottie.asset(
                             'assets/animations/Capsule.json',
                             repeat: true,
@@ -1027,6 +1039,11 @@ class _ThemeLottieToggleButtonState extends State<ThemeLottieToggleButton>
   late final AnimationController _controller;
   Duration _compositionDuration = const Duration(milliseconds: 700);
 
+  Duration _toggleDuration() {
+    final int scaled = (_compositionDuration.inMilliseconds * 0.65).round();
+    return Duration(milliseconds: scaled.clamp(260, 520));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1040,8 +1057,8 @@ class _ThemeLottieToggleButtonState extends State<ThemeLottieToggleButton>
     if (oldWidget.isDarkMode != widget.isDarkMode) {
       _controller.animateTo(
         widget.isDarkMode ? 1 : 0,
-        duration: _compositionDuration,
-        curve: Curves.easeOutCubic,
+        duration: _toggleDuration(),
+        curve: Curves.easeInOutCubicEmphasized,
       );
     }
   }
@@ -1054,17 +1071,21 @@ class _ThemeLottieToggleButtonState extends State<ThemeLottieToggleButton>
 
   @override
   Widget build(BuildContext context) {
+    final bool isDesktop = MediaQuery.of(context).size.width >= 1024;
+    final double iconViewport = isDesktop ? 46 : 38;
+    final double animationSize = isDesktop ? 72 : 56;
+
     return IconButton(
       tooltip: 'Cambiar tema',
       onPressed: widget.onToggleTheme,
       icon: SizedBox(
-        width: 38,
-        height: 38,
+        width: iconViewport,
+        height: iconViewport,
         child: FittedBox(
           fit: BoxFit.cover,
           child: SizedBox(
-            width: 56,
-            height: 56,
+            width: animationSize,
+            height: animationSize,
             child: Lottie.asset(
               'assets/animations/Light-dark mode button.json',
               controller: _controller,
