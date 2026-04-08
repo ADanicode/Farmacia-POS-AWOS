@@ -41,18 +41,22 @@ class ExcelReportGenerator {
 
     // ── Pre-cómputo de KPIs ───────────────────────────────────────────────
     final int numVentas = ventas.length;
-    final double ventaTotal =
-        ventas.fold(0.0, (double a, VentaReporte v) => a + v.total);
-    final double ivaTotal =
-        ventas.fold(0.0, (double a, VentaReporte v) => a + v.iva);
-    final double ticketPromedio =
-        numVentas > 0 ? ventaTotal / numVentas : 0.0;
+    final double ventaTotal = ventas.fold(
+      0.0,
+      (double a, VentaReporte v) => a + v.total,
+    );
+    final double ivaTotal = ventas.fold(
+      0.0,
+      (double a, VentaReporte v) => a + v.iva,
+    );
+    final double ticketPromedio = numVentas > 0 ? ventaTotal / numVentas : 0.0;
 
     // ── Pre-cómputo distribución de métodos de pago ───────────────────────
     final Map<String, double> totalesPorMetodo = <String, double>{};
     for (final VentaReporte v in ventas) {
-      final String m =
-          v.metodoPago.trim().isEmpty ? 'Sin especificar' : v.metodoPago.trim();
+      final String m = v.metodoPago.trim().isEmpty
+          ? 'Sin especificar'
+          : v.metodoPago.trim();
       totalesPorMetodo[m] = (totalesPorMetodo[m] ?? 0.0) + v.total;
     }
 
@@ -168,7 +172,9 @@ class ExcelReportGenerator {
     const int chartHeaderRow = 12;
     sheet.getRangeByName('N$chartHeaderRow').setText('Metodo de Pago');
     sheet.getRangeByName('O$chartHeaderRow').setText('Total');
-    final Range chartTh = sheet.getRangeByName('N$chartHeaderRow:O$chartHeaderRow');
+    final Range chartTh = sheet.getRangeByName(
+      'N$chartHeaderRow:O$chartHeaderRow',
+    );
     chartTh.cellStyle.backColor = '#CFD8DC';
     chartTh.cellStyle.bold = true;
 
@@ -447,14 +453,16 @@ class ExcelReportGenerator {
     }
 
     // Rango efectivo de la columna "Total del Día" para fórmulas
-    final int dailyDataEnd =
-        diasOrdenados.isEmpty ? dailyDataStart : currentRow - 1;
+    final int dailyDataEnd = diasOrdenados.isEmpty
+        ? dailyDataStart
+        : currentRow - 1;
     final String dailyTotalRange = 'E$dailyDataStart:E$dailyDataEnd';
 
     // ── Sección 2: Estadísticas globales con fórmulas nativas ─────────────
     final int statsSection = currentRow + 2;
-    final Range section2Lbl =
-        sheet.getRangeByName('A$statsSection:G$statsSection');
+    final Range section2Lbl = sheet.getRangeByName(
+      'A$statsSection:G$statsSection',
+    );
     section2Lbl.merge();
     section2Lbl.setText('ESTADISTICAS GLOBALES DEL PERIODO');
     section2Lbl.cellStyle.bold = true;
@@ -496,8 +504,9 @@ class ExcelReportGenerator {
 
     // ── Sección 3: Auditoría de retención de recetas médicas ──────────────
     final int recetasSection = statsSection + 5;
-    final Range section3Lbl =
-        sheet.getRangeByName('A$recetasSection:G$recetasSection');
+    final Range section3Lbl = sheet.getRangeByName(
+      'A$recetasSection:G$recetasSection',
+    );
     section3Lbl.merge();
     section3Lbl.setText('AUDITORIA DE RETENCION DE RECETAS MEDICAS');
     section3Lbl.cellStyle.bold = true;
@@ -508,8 +517,9 @@ class ExcelReportGenerator {
 
     // Rango de "Receta Retenida" en Hoja 2 para las fórmulas COUNTIF
     final int sheet2DataStart = 5;
-    final int sheet2DataEnd =
-        totalVentas == 0 ? sheet2DataStart : sheet2DataStart + totalVentas - 1;
+    final int sheet2DataEnd = totalVentas == 0
+        ? sheet2DataStart
+        : sheet2DataStart + totalVentas - 1;
     final String recetaRange =
         "'Datos Transaccionales'!H$sheet2DataStart:H$sheet2DataEnd";
 
