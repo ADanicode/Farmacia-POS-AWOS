@@ -166,7 +166,7 @@ class _ReportesPageState extends State<ReportesPage> {
 
     try {
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String fileName = 'reporte_ventas_$timestamp';
+      final String fileName = 'reporte_inteligencia_ventas_v2_$timestamp';
       final Uint8List reportBytes = await _excelGenerator.generateVentasXlsx(
         ventas: _ventas,
       );
@@ -183,8 +183,8 @@ class _ReportesPageState extends State<ReportesPage> {
       }
 
       final String msg = filePath == null
-          ? 'Reporte Excel descargado.'
-          : 'Reporte Excel guardado en: $filePath';
+          ? 'Reporte Excel v2 descargado.'
+          : 'Reporte Excel v2 guardado en: $filePath';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } catch (_) {
       if (!mounted) {
