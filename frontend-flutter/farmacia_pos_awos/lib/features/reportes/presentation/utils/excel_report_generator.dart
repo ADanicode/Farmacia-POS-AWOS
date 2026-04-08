@@ -22,14 +22,15 @@ class ExcelReportGenerator {
   Future<Uint8List> generateVentasXlsx({
     required List<VentaReporte> ventas,
   }) async {
-    final Workbook workbook = Workbook();
+    // Se crea con 3 hojas explícitas para garantizar estructura multi-hoja.
+    final Workbook workbook = Workbook(3);
 
     // ── Crear las 3 hojas ─────────────────────────────────────────────────
     final Worksheet sheetDashboard = workbook.worksheets[0];
     sheetDashboard.name = 'Dashboard';
-    final Worksheet sheetDatos = workbook.worksheets.add();
+    final Worksheet sheetDatos = workbook.worksheets[1];
     sheetDatos.name = 'Datos Transaccionales';
-    final Worksheet sheetStats = workbook.worksheets.add();
+    final Worksheet sheetStats = workbook.worksheets[2];
     sheetStats.name = 'Analisis Estadistico';
 
     // ── Logo SVG → PNG (una sola conversión para todo el libro) ──────────
@@ -109,6 +110,10 @@ class ExcelReportGenerator {
   }) async {
     sheet.showGridlines = false;
 
+    // Fondo corporativo superior para dar carácter ejecutivo al dashboard.
+    final Range heroBand = sheet.getRangeByName('A1:L5');
+    heroBand.cellStyle.backColor = '#E3F2FD';
+
     // Logo en A1
     final Picture logo = sheet.pictures.addStream(1, 1, logoBytes);
     logo.width = 80;
@@ -135,6 +140,16 @@ class ExcelReportGenerator {
     subtitleRange.cellStyle.italic = true;
     subtitleRange.cellStyle.hAlign = HAlignType.center;
     subtitleRange.cellStyle.fontSize = 10;
+
+    final Range versionBadge = sheet.getRangeByName('J2:L2');
+    versionBadge.merge();
+    versionBadge.setText('Workbook Inteligencia v2');
+    versionBadge.cellStyle.backColor = '#0D47A1';
+    versionBadge.cellStyle.fontColor = _blanco;
+    versionBadge.cellStyle.bold = true;
+    versionBadge.cellStyle.hAlign = HAlignType.center;
+    versionBadge.cellStyle.vAlign = VAlignType.center;
+    versionBadge.cellStyle.borders.all.lineStyle = LineStyle.medium;
 
     // Etiqueta de sección KPIs B6:L6
     final Range kpiSection = sheet.getRangeByName('B6:L6');
@@ -212,6 +227,10 @@ class ExcelReportGenerator {
     for (int c = 1; c <= 15; c++) {
       sheet.autoFitColumn(c);
     }
+
+    // Reducimos visualmente la tabla auxiliar del chart para priorizar el dashboard.
+    sheet.getRangeByName('N1:N200').columnWidth = 2;
+    sheet.getRangeByName('O1:O200').columnWidth = 2;
   }
 
   /// Dibuja una tarjeta KPI con fila de etiqueta y fila de valor.
@@ -263,6 +282,7 @@ class ExcelReportGenerator {
     sheetTitle.cellStyle.hAlign = HAlignType.center;
     sheetTitle.cellStyle.vAlign = VAlignType.center;
     sheetTitle.cellStyle.fontSize = 14;
+    sheet.showGridlines = true;
 
     // Cabecera de tabla en fila 4
     const int headerRow = 4;
@@ -333,7 +353,10 @@ class ExcelReportGenerator {
       applyStyle(totalCell);
 
       final Range metodoCell = sheet.getRangeByIndex(currentRow, 7);
-      metodoCell.setText(v.metodoPago);
+      final String metodoNormalizado = v.metodoPago.trim().isEmpty
+          ? 'Sin especificar'
+          : v.metodoPago;
+      metodoCell.setText(metodoNormalizado);
       applyStyle(metodoCell);
 
       final Range recetaCell = sheet.getRangeByIndex(currentRow, 8);
@@ -351,6 +374,14 @@ class ExcelReportGenerator {
     for (int c = 1; c <= 8; c++) {
       sheet.autoFitColumn(c);
     }
+
+    // Ajustes de ancho para consistencia visual corporativa.
+    sheet.getRangeByName('A:A').columnWidth = 15;
+    sheet.getRangeByName('B:B').columnWidth = 20;
+    sheet.getRangeByName('C:C').columnWidth = 22;
+    sheet.getRangeByName('D:F').columnWidth = 14;
+    sheet.getRangeByName('G:G').columnWidth = 18;
+    sheet.getRangeByName('H:H').columnWidth = 16;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -361,6 +392,8 @@ class ExcelReportGenerator {
     required List<_DiaStats> diasOrdenados,
     required int totalVentas,
   }) {
+    sheet.showGridlines = false;
+
     // Encabezado de hoja A1:G2
     final Range sheetTitle = sheet.getRangeByName('A1:G2');
     sheetTitle.merge();
