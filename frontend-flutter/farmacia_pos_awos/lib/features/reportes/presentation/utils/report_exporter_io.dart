@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:csv/csv.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,5 +28,17 @@ Future<String?> exportVentasCsv({
   final Directory dir = await getApplicationDocumentsDirectory();
   final File file = File('${dir.path}/$fileName.csv');
   await file.writeAsString(csv, flush: true);
+  return file.path;
+}
+
+Future<String?> saveReportFile({
+  required Uint8List bytes,
+  required String fileName,
+  required String extension,
+  required String mimeType,
+}) async {
+  final Directory dir = await getApplicationDocumentsDirectory();
+  final File file = File('${dir.path}/$fileName.$extension');
+  await file.writeAsBytes(bytes, flush: true);
   return file.path;
 }

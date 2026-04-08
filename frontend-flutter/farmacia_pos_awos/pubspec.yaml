@@ -42,10 +42,13 @@ dependencies:
   google_sign_in: ^6.2.1
   flutter_animate: ^4.5.2
   lottie: ^3.1.2
+  flutter_svg: ^2.0.10+1
   pdf: ^3.11.1
   printing: ^5.13.4
   fl_chart: ^0.69.0
   csv: ^6.0.0
+  syncfusion_flutter_xlsio: ^29.2.11
+  syncfusion_officechart: ^29.2.11
   universal_html: ^2.2.4
   path_provider: ^2.1.4
   sign_in_button: ^3.2.0

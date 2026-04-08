@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:csv/csv.dart';
 import 'package:universal_html/html.dart' as html;
@@ -33,5 +34,20 @@ Future<String?> exportVentasCsv({
     ..click();
   html.Url.revokeObjectUrl(url);
 
+  return null;
+}
+
+Future<String?> saveReportFile({
+  required Uint8List bytes,
+  required String fileName,
+  required String extension,
+  required String mimeType,
+}) async {
+  final html.Blob blob = html.Blob(<dynamic>[bytes], mimeType);
+  final String url = html.Url.createObjectUrlFromBlob(blob);
+  html.AnchorElement(href: url)
+    ..setAttribute('download', '$fileName.$extension')
+    ..click();
+  html.Url.revokeObjectUrl(url);
   return null;
 }

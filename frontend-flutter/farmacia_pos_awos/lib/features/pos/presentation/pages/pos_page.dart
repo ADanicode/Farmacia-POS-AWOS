@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:farmacia_pos_awos/core/di/injection_container.dart';
+import 'package:farmacia_pos_awos/presentation/widgets/farmacia_logo.dart';
 import 'package:farmacia_pos_awos/core/router/app_router.dart';
 import 'package:farmacia_pos_awos/core/router/route_guards.dart';
 import 'package:farmacia_pos_awos/features/auth/domain/entities/auth_session.dart';
@@ -91,7 +92,18 @@ class _PosPageState extends State<PosPage> {
       ],
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Farmacia AWOS - POS | ${widget.session.nombre}'),
+          title: Row(
+            children: <Widget>[
+              const FarmaciaLogo(width: 28, height: 28),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'POS | ${widget.session.nombre}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
           actions: <Widget>[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -194,12 +206,18 @@ class _PosPageState extends State<PosPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
-                Text(
-                  'Farmacia AWOS',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: <Widget>[
+                    const FarmaciaLogo(width: 30, height: 30),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Farmacia AWOS',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

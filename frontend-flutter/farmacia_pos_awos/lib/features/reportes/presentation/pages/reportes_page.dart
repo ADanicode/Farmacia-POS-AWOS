@@ -1,8 +1,10 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:farmacia_pos_awos/presentation/widgets/farmacia_logo.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -11,6 +13,7 @@ import '../../../pos/presentation/widgets/ticket_preview_dialog.dart';
 import '../../data/repositories/reportes_repository.dart';
 import '../../domain/entities/reporte_turno.dart';
 import '../../domain/entities/venta_reporte.dart';
+import '../utils/excel_report_generator.dart';
 import '../utils/report_exporter.dart';
 
 enum _PeriodoFiltro { hoy, semana, mes, anio, personalizado }
@@ -29,6 +32,7 @@ class ReportesPage extends StatefulWidget {
 
 class _ReportesPageState extends State<ReportesPage> {
   final ReportesRepository _reportesRepository = sl<ReportesRepository>();
+  final ExcelReportGenerator _excelGenerator = ExcelReportGenerator();
 
   ReporteTurno _reporte = ReporteTurno.empty();
   bool _loading = true;
@@ -160,21 +164,36 @@ class _ReportesPageState extends State<ReportesPage> {
       return;
     }
 
-    final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-    final String fileName = 'reporte_ventas_$timestamp';
-    final String? filePath = await exportVentasCsv(
-      ventas: _ventas,
-      fileName: fileName,
-    );
+    try {
+      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final String fileName = 'reporte_ventas_$timestamp';
+      final Uint8List reportBytes = await _excelGenerator.generateVentasXlsx(
+        ventas: _ventas,
+      );
+      final String? filePath = await saveReportFile(
+        bytes: reportBytes,
+        fileName: fileName,
+        extension: 'xlsx',
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
 
-    if (!mounted) {
-      return;
+      if (!mounted) {
+        return;
+      }
+
+      final String msg = filePath == null
+          ? 'Reporte Excel descargado.'
+          : 'Reporte Excel guardado en: $filePath';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo generar el reporte Excel.')),
+      );
     }
-
-    final String msg = filePath == null
-        ? 'Reporte CSV descargado.'
-        : 'Reporte CSV guardado en: $filePath';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   double _kFormatter(double value) {
@@ -902,17 +921,24 @@ class _ReportesPageState extends State<ReportesPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reportes y Auditoría'),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            FarmaciaLogo(width: 28, height: 28),
+            SizedBox(width: 10),
+            Text('Reportes y Auditoría'),
+          ],
+        ),
         actions: <Widget>[
           if (MediaQuery.of(context).size.width > 800)
             TextButton.icon(
               onPressed: _onExportarReporte,
               icon: const Icon(Icons.download_outlined),
-              label: const Text('Exportar Reporte (CSV)'),
+              label: const Text('Exportar Reporte (Excel)'),
             )
           else
             IconButton(
-              tooltip: 'Exportar CSV',
+              tooltip: 'Exportar Excel',
               onPressed: _onExportarReporte,
               icon: const Icon(Icons.download_outlined),
             ),
