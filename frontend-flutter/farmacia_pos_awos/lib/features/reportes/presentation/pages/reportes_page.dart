@@ -186,12 +186,19 @@ class _ReportesPageState extends State<ReportesPage> {
           ? 'Reporte Excel v2 descargado.'
           : 'Reporte Excel v2 guardado en: $filePath';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('Error exportando reporte Excel: $e');
+      debugPrintStack(stackTrace: st);
+
       if (!mounted) {
         return;
       }
+
+      final String errorText = e.toString();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo generar el reporte Excel.')),
+        SnackBar(
+          content: Text('No se pudo generar el reporte Excel: $errorText'),
+        ),
       );
     }
   }

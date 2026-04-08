@@ -376,12 +376,14 @@ class ExcelReportGenerator {
     }
 
     // Ajustes de ancho para consistencia visual corporativa.
-    sheet.getRangeByName('A:A').columnWidth = 15;
-    sheet.getRangeByName('B:B').columnWidth = 20;
-    sheet.getRangeByName('C:C').columnWidth = 22;
-    sheet.getRangeByName('D:F').columnWidth = 14;
-    sheet.getRangeByName('G:G').columnWidth = 18;
-    sheet.getRangeByName('H:H').columnWidth = 16;
+    sheet.getRangeByName('A1').columnWidth = 15;
+    sheet.getRangeByName('B1').columnWidth = 20;
+    sheet.getRangeByName('C1').columnWidth = 22;
+    sheet.getRangeByName('D1').columnWidth = 14;
+    sheet.getRangeByName('E1').columnWidth = 14;
+    sheet.getRangeByName('F1').columnWidth = 14;
+    sheet.getRangeByName('G1').columnWidth = 18;
+    sheet.getRangeByName('H1').columnWidth = 16;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
