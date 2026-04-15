@@ -491,7 +491,6 @@ class ExcelReportGenerator {
     final int dailyDataEnd = diasOrdenados.isEmpty
         ? dailyDataStart
         : currentRow - 1;
-    final String dailyTotalRange = 'E$dailyDataStart:E$dailyDataEnd';
 
     final double maxVentaPeriodo = diasOrdenados.isNotEmpty
         ? diasOrdenados.map((e) => e.total).reduce((a, b) => a > b ? a : b)
@@ -501,7 +500,7 @@ class ExcelReportGenerator {
         : 0.0;
     final double promedioDiarioVenta = diasOrdenados.isNotEmpty
         ? diasOrdenados.map((e) => e.total).reduce((a, b) => a + b) /
-            diasOrdenados.length
+              diasOrdenados.length
         : 0.0;
 
     // ── Sección 2: Estadísticas globales con fórmulas nativas
