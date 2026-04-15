@@ -4,6 +4,7 @@ import {
   ILineaDescontar,
   IDescontarResponse,
   ICompensarResponse,
+  IDatosRecetaDescuento,
 } from '@domain/ports/IInventoryProvider';
 
 export class HttpInventoryProvider implements IInventoryProvider {
@@ -26,12 +27,14 @@ export class HttpInventoryProvider implements IInventoryProvider {
   public async descontarStock(
     ventaId: string,
     lineas: ILineaDescontar[],
+    datosReceta?: IDatosRecetaDescuento,
   ): Promise<IDescontarResponse> {
     try {
       console.log(`[HttpInventoryProvider] Descuentando stock para venta ${ventaId}`);
       const response = await this.client.post('/api/v1/inventario/descontar', {
         ventaId,
         lineas,
+        datosReceta,
       });
       return response.data as IDescontarResponse;
     } catch (error: any) {

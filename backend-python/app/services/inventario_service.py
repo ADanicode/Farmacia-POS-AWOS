@@ -7,7 +7,7 @@ class InventarioService:
     def __init__(self, db: Session):
         self.db = db
 
-    def descontar_stock(self, venta_id: str, lineas: list) -> list:
+    def descontar_stock(self, venta_id: str, lineas: list, datos_receta=None) -> list:
         resultado = []
 
         for linea in lineas:
@@ -46,17 +46,32 @@ class InventarioService:
                 "lote_id": lote.id
             })
 
-            # Registrar movimiento
-            self.db.execute(text("""
-                INSERT INTO farm_movimientos_inventario
-                    (lote_id, tipo, cantidad, referencia)
-                VALUES
-                    (:lote_id, 'VENTA', :cantidad, :referencia)
-            """), {
-                "lote_id": lote.id,
-                "cantidad": cantidad_requerida,
-                "referencia": venta_id
-            })
+            # Registrar movimiento. Para controlados, la BD exige datos de receta.
+            if datos_receta:
+                self.db.execute(text("""
+                    INSERT INTO farm_movimientos_inventario
+                        (lote_id, tipo, cantidad, referencia, ci_medico, nombre_medico, fecha_receta)
+                    VALUES
+                        (:lote_id, 'VENTA', :cantidad, :referencia, :ci_medico, :nombre_medico, :fecha_receta)
+                """), {
+                    "lote_id": lote.id,
+                    "cantidad": cantidad_requerida,
+                    "referencia": venta_id,
+                    "ci_medico": datos_receta.ciMedico,
+                    "nombre_medico": datos_receta.nombreMedico,
+                    "fecha_receta": datos_receta.fechaReceta,
+                })
+            else:
+                self.db.execute(text("""
+                    INSERT INTO farm_movimientos_inventario
+                        (lote_id, tipo, cantidad, referencia)
+                    VALUES
+                        (:lote_id, 'VENTA', :cantidad, :referencia)
+                """), {
+                    "lote_id": lote.id,
+                    "cantidad": cantidad_requerida,
+                    "referencia": venta_id
+                })
 
             resultado.append({
                 "lote_id": lote.id,

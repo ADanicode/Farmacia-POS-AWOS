@@ -16,6 +16,12 @@ export interface ILineaDescontar {
   lote?: string;
 }
 
+export interface IDatosRecetaDescuento {
+  ciMedico: string;
+  nombreMedico: string;
+  fechaReceta: string;
+}
+
 /**
  * Interface para la respuesta de descuento exitoso
  */
@@ -76,6 +82,7 @@ export interface IInventoryProvider {
   descontarStock(
     ventaId: string,
     lineas: ILineaDescontar[],
+    datosReceta?: IDatosRecetaDescuento,
   ): Promise<IDescontarResponse>;
 
   /**

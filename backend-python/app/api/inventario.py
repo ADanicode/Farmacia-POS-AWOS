@@ -13,9 +13,16 @@ class LineaDescontar(BaseModel):
     cantidad: int
     lote: Optional[str] = None
 
+
+class DatosReceta(BaseModel):
+    ciMedico: str
+    nombreMedico: str
+    fechaReceta: str
+
 class DescontarRequest(BaseModel):
     ventaId: str
     lineas: List[LineaDescontar]
+    datosReceta: Optional[DatosReceta] = None
 
 class CompensarRequest(BaseModel):
     ventaId: str
@@ -26,7 +33,11 @@ def descontar(body: DescontarRequest, db: Session = Depends(get_db)):
     try:
         with UnitOfWork(db):
             service = InventarioService(db)
-            resultado = service.descontar_stock(body.ventaId, body.lineas)
+            resultado = service.descontar_stock(
+                body.ventaId,
+                body.lineas,
+                body.datosReceta,
+            )
             return {"detalle": resultado}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

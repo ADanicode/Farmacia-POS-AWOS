@@ -98,10 +98,21 @@ export class VentaService {
       console.log(`[VentaService] 📦 SAGA STEP 1: Descontando stock en Python...`);
 
       const lineasDescontar = MapperLineaDescontar.fromLineasVenta(venta.getLineas());
+      const datosRecetaDescuento = venta.getDatosReceta()
+        ? {
+            ciMedico: venta.getDatosReceta()!.getCiMedico(),
+            nombreMedico: venta.getDatosReceta()!.getNombreMedico(),
+            fechaReceta: venta.getDatosReceta()!.getFechaReceta().toISOString(),
+          }
+        : undefined;
 
       let resultadoDescuento: any;
       try {
-        resultadoDescuento = await this.inventoryProvider.descontarStock(ventaId, lineasDescontar);
+        resultadoDescuento = await this.inventoryProvider.descontarStock(
+          ventaId,
+          lineasDescontar,
+          datosRecetaDescuento,
+        );
         console.log(`[VentaService] ✅ Stock descontado en Python:`, JSON.stringify(resultadoDescuento));
       } catch (errorStock: any) {
         // Si Python rechaza por stock insuficiente, abortar sin guardar en Firestore

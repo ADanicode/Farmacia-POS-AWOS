@@ -70,7 +70,7 @@ export class FirebaseAuthService implements IAuthService {
     }
 
     // Paso 4: Validar que tenga un rol válido (no "SIN_ROL")
-    const role = usuario.getRole();
+    const role = String(usuario.getRole()).toUpperCase();
     if (role === 'SIN_ROL') {
       const unauthorized = new Error(
         `Usuario ${decodedToken.uid} no tiene rol asignado. Pendiente de aprobación del admin.`,
