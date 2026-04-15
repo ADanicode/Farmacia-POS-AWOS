@@ -75,7 +75,7 @@ export class FirestorePerfilesRepository implements IPerfilesRepository {
   }
 
   private mapearDocumentoAUsuario(doc: FirestorePerfil): Usuario {
-    const roleNormalizado = String(doc.role).toLowerCase();
+    const roleNormalizado = String(doc.role).toUpperCase();
     const permisosNormalizados = (doc.permisos ?? []).map((permiso) =>
       String(permiso).toLowerCase(),
     );

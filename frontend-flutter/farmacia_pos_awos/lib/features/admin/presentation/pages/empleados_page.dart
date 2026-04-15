@@ -219,15 +219,15 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
                         decoration: const InputDecoration(labelText: 'Rol'),
                         items: const <DropdownMenuItem<String>>[
                           DropdownMenuItem<String>(
-                            value: 'sin_rol',
+                            value: 'SIN_ROL',
                             child: Text('Sin rol'),
                           ),
                           DropdownMenuItem<String>(
-                            value: 'admin',
+                            value: 'ADMIN',
                             child: Text('Admin'),
                           ),
                           DropdownMenuItem<String>(
-                            value: 'vendedor',
+                            value: 'VENDEDOR',
                             child: Text('Vendedor'),
                           ),
                         ],
@@ -239,12 +239,12 @@ class _EmpleadosPageState extends State<EmpleadosPage> {
                             rolSeleccionado = value;
 
                             // Presets automáticos por rol con edición manual posterior.
-                            if (value == 'admin') {
+                            if (value == 'ADMIN') {
                               for (final String permiso
                                   in permisosDisponibles) {
                                 permisosSeleccionados[permiso] = true;
                               }
-                            } else if (value == 'vendedor') {
+                            } else if (value == 'VENDEDOR') {
                               for (final String permiso
                                   in permisosDisponibles) {
                                 permisosSeleccionados[permiso] =

@@ -19,7 +19,7 @@ export class FirebaseAuthService implements IAuthService {
         id: datos.uid,
         email: datos.email,
         nombre: datos.nombre,
-        role: (datos.role || 'admin').toLowerCase(),
+        role: (datos.role || 'ADMIN').toUpperCase(),
         permisos: datos.permisos || ['crear_venta', 'descontar_stock', 'ver_reportes', 'anular_venta'],
         activo: true,
         fechaCreacion: new Date().toISOString()
@@ -69,9 +69,9 @@ export class FirebaseAuthService implements IAuthService {
       throw unauthorized;
     }
 
-    // Paso 4: Validar que tenga un rol válido (no "sin_rol")
-    const role = usuario.getRole().toLowerCase();
-    if (role === 'sin_rol') {
+    // Paso 4: Validar que tenga un rol válido (no "SIN_ROL")
+    const role = usuario.getRole();
+    if (role === 'SIN_ROL') {
       const unauthorized = new Error(
         `Usuario ${decodedToken.uid} no tiene rol asignado. Pendiente de aprobación del admin.`,
       );

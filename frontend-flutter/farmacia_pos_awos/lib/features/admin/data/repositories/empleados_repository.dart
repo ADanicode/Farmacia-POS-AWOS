@@ -51,7 +51,7 @@ class EmpleadosRepository {
       'uid': uid,
       'email': email.toLowerCase(),
       'nombre': nombre.trim().isNotEmpty ? nombre : email.split('@').first,
-      'role': 'sin_rol',
+      'role': 'SIN_ROL',
       'activo': false,
       'permisos': <String>[],
     });
@@ -64,11 +64,11 @@ class EmpleadosRepository {
     required List<String> permisos,
     required bool activo,
   }) async {
-    final String normalizedRole = role.trim().toLowerCase();
-    if (normalizedRole != 'admin' &&
-        normalizedRole != 'vendedor' &&
-        normalizedRole != 'sin_rol') {
-      throw ArgumentError('Role debe ser "admin", "vendedor" o "sin_rol".');
+    final String normalizedRole = role.trim().toUpperCase();
+    if (normalizedRole != 'ADMIN' &&
+        normalizedRole != 'VENDEDOR' &&
+        normalizedRole != 'SIN_ROL') {
+      throw ArgumentError('Role debe ser "ADMIN", "VENDEDOR" o "SIN_ROL".');
     }
 
     await _collection.doc(uid).update(<String, dynamic>{

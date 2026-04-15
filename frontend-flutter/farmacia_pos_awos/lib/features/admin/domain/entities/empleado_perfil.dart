@@ -42,7 +42,7 @@ class EmpleadoPerfil extends Equatable {
           : documentId,
       nombre: (map['nombre'] as String?) ?? '',
       email: (map['email'] as String?) ?? '',
-      role: ((map['role'] as String?) ?? 'sin_rol').toLowerCase(),
+      role: ((map['role'] as String?) ?? 'SIN_ROL').toUpperCase(),
       permisos: ((map['permisos'] as List<dynamic>?) ?? <dynamic>[])
           .map((dynamic permiso) => permiso.toString())
           .toList(growable: false),

@@ -8,11 +8,11 @@
  * Enum de roles disponibles en el sistema
  */
 export enum RoleType {
-  ADMIN = 'admin',
-  GERENTE = 'gerente',
-  FARMACEUTICO = 'farmaceutico',
-  CAJERO = 'cajero',
-  VENDEDOR = 'vendedor',
+  ADMIN = 'ADMIN',
+  GERENTE = 'GERENTE',
+  FARMACEUTICO = 'FARMACEUTICO',
+  CAJERO = 'CAJERO',
+  VENDEDOR = 'VENDEDOR',
 }
 
 /**
