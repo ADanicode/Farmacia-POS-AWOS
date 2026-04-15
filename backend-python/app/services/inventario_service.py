@@ -116,29 +116,28 @@ class InventarioService:
             "referencia": venta_id,
         }
 
-        if datos_receta:
-            ci_col = self._first_existing_column(
-                columnas_mov,
-                ["ci_medico", "cedula_medico", "medico_ci", "ci_doctor"],
-            )
-            nombre_col = self._first_existing_column(
-                columnas_mov,
-                ["nombre_medico", "medico_nombre", "nombre_doctor"],
-            )
-            fecha_col = self._first_existing_column(
-                columnas_mov,
-                ["fecha_receta", "receta_fecha", "fecha_prescripcion"],
-            )
+        ci_col = self._first_existing_column(
+            columnas_mov,
+            ["ci_medico", "cedula_medico", "medico_ci", "ci_doctor"],
+        )
+        nombre_col = self._first_existing_column(
+            columnas_mov,
+            ["nombre_medico", "medico_nombre", "nombre_doctor"],
+        )
+        fecha_col = self._first_existing_column(
+            columnas_mov,
+            ["fecha_receta", "receta_fecha", "fecha_prescripcion"],
+        )
 
-            if ci_col and getattr(datos_receta, 'ciMedico', None):
-                columnas_insert.append(ci_col)
-                valores_insert[ci_col] = datos_receta.ciMedico
-            if nombre_col and getattr(datos_receta, 'nombreMedico', None):
-                columnas_insert.append(nombre_col)
-                valores_insert[nombre_col] = datos_receta.nombreMedico
-            if fecha_col and getattr(datos_receta, 'fechaReceta', None):
-                columnas_insert.append(fecha_col)
-                valores_insert[fecha_col] = datos_receta.fechaReceta
+        if ci_col:
+            columnas_insert.append(ci_col)
+            valores_insert[ci_col] = getattr(datos_receta, 'ciMedico', None)
+        if nombre_col:
+            columnas_insert.append(nombre_col)
+            valores_insert[nombre_col] = getattr(datos_receta, 'nombreMedico', None)
+        if fecha_col:
+            columnas_insert.append(fecha_col)
+            valores_insert[fecha_col] = getattr(datos_receta, 'fechaReceta', None)
 
         col_sql = ", ".join(columnas_insert)
         val_sql = ", ".join([f":{c}" for c in columnas_insert])
