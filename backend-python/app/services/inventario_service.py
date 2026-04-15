@@ -80,17 +80,17 @@ class InventarioService:
                 if referencia_col:
                     columnas_insert.append(referencia_col)
                     valores_insert[referencia_col] = venta_id
-                if ci_col:
+                if ci_col and getattr(datos_receta, 'ciMedico', None):
                     columnas_insert.append(ci_col)
                     valores_insert[ci_col] = datos_receta.ciMedico
-                if nombre_col:
+                if nombre_col and getattr(datos_receta, 'nombreMedico', None):
                     columnas_insert.append(nombre_col)
                     valores_insert[nombre_col] = datos_receta.nombreMedico
-                if fecha_col:
+                if fecha_col and getattr(datos_receta, 'fechaReceta', None):
                     columnas_insert.append(fecha_col)
                     valores_insert[fecha_col] = datos_receta.fechaReceta
 
-                # Si no hay columnas compatibles, no intentar insertar en esta tabla.
+                # Si solo hay referencia y no hay datos de receta útiles, insertamos el ticket sin receta.
                 if not columnas_insert:
                     continue
 
@@ -130,13 +130,13 @@ class InventarioService:
                 ["fecha_receta", "receta_fecha", "fecha_prescripcion"],
             )
 
-            if ci_col:
+            if ci_col and getattr(datos_receta, 'ciMedico', None):
                 columnas_insert.append(ci_col)
                 valores_insert[ci_col] = datos_receta.ciMedico
-            if nombre_col:
+            if nombre_col and getattr(datos_receta, 'nombreMedico', None):
                 columnas_insert.append(nombre_col)
                 valores_insert[nombre_col] = datos_receta.nombreMedico
-            if fecha_col:
+            if fecha_col and getattr(datos_receta, 'fechaReceta', None):
                 columnas_insert.append(fecha_col)
                 valores_insert[fecha_col] = datos_receta.fechaReceta
 

@@ -15,9 +15,9 @@ class LineaDescontar(BaseModel):
 
 
 class DatosReceta(BaseModel):
-    ciMedico: str
-    nombreMedico: str
-    fechaReceta: str
+    ciMedico: Optional[str] = None
+    nombreMedico: Optional[str] = None
+    fechaReceta: Optional[str] = None
 
 class DescontarRequest(BaseModel):
     ventaId: str
