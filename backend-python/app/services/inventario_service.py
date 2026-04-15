@@ -146,13 +146,33 @@ class InventarioService:
             f"INSERT INTO farm_movimientos_inventario ({col_sql}) VALUES ({val_sql})"
         ), valores_insert)
 
+    def _lineas_requieren_receta(self, lineas: list) -> bool:
+        for linea in lineas:
+            medicamento_id = int(linea.codigoProducto)
+            row = self.db.execute(text("""
+                SELECT requiere_receta
+                FROM farm_medicamentos
+                WHERE id = :id
+                LIMIT 1
+            """), {"id": medicamento_id}).fetchone()
+
+            if row and getattr(row, "requiere_receta", False):
+                return True
+
+        return False
+
     def descontar_stock(self, venta_id: str, lineas: list, datos_receta=None) -> list:
         resultado = []
 
         # Algunos esquemas validan receta en trigger consultando tablas auxiliares.
         # Registramos primero la receta si aplica para que la inserción de movimientos pueda pasar.
-        if datos_receta:
-            self._registrar_receta_auxiliar(venta_id, datos_receta)
+        if datos_receta or self._lineas_requieren_receta(lineas):
+            receta_obj = datos_receta if datos_receta else type(
+                "DatosRecetaDummy",
+                (),
+                {"ciMedico": None, "nombreMedico": None, "fechaReceta": None}
+            )()
+            self._registrar_receta_auxiliar(venta_id, receta_obj)
 
         for linea in lineas:
             # Node envía codigoProducto (que es el ID del medicamento)
