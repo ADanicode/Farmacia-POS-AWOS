@@ -90,7 +90,6 @@ class InventarioService:
                     columnas_insert.append(fecha_col)
                     valores_insert[fecha_col] = datos_receta.fechaReceta
 
-                # Si solo hay referencia y no hay datos de receta útiles, insertamos el ticket sin receta.
                 if not columnas_insert:
                     continue
 
@@ -163,8 +162,6 @@ class InventarioService:
     def descontar_stock(self, venta_id: str, lineas: list, datos_receta=None) -> list:
         resultado = []
 
-        # Algunos esquemas validan receta en trigger consultando tablas auxiliares.
-        # Registramos primero la receta si aplica para que la inserción de movimientos pueda pasar.
         if datos_receta or self._lineas_requieren_receta(lineas):
             receta_obj = datos_receta if datos_receta else type(
                 "DatosRecetaDummy",
@@ -178,50 +175,53 @@ class InventarioService:
             medicamento_id = int(linea.codigoProducto)
             cantidad_requerida = linea.cantidad
 
-            # FEFO: lote más próximo a vencer con stock suficiente
-            # FOR UPDATE: bloqueo pesimista para evitar sobreventa (HU-40)
-            lote = self.db.execute(text("""
-                SELECT id, stock_actual, fecha_caducidad
-                FROM farm_lotes_inventario
-                WHERE medicamento_id = :med_id
-                  AND stock_actual >= :cantidad
-                  AND fecha_caducidad >= CURRENT_DATE
-                ORDER BY fecha_caducidad ASC
-                LIMIT 1
-                FOR UPDATE
-            """), {
-                "med_id": medicamento_id,
-                "cantidad": cantidad_requerida
-            }).fetchone()
+            # FEFO: consumimos los lotes más próximos a vencer con stock disponible.
+            # FOR UPDATE: bloqueo pesimista para evitar sobreventa (HU-40).
+            restante = cantidad_requerida
+            while restante > 0:
+                lote = self.db.execute(text("""
+                    SELECT id, stock_actual, fecha_caducidad
+                    FROM farm_lotes_inventario
+                    WHERE medicamento_id = :med_id
+                      AND stock_actual > 0
+                      AND fecha_caducidad >= CURRENT_DATE
+                    ORDER BY fecha_caducidad ASC
+                    LIMIT 1
+                    FOR UPDATE
+                """), {
+                    "med_id": medicamento_id,
+                }).fetchone()
 
-            if not lote:
-                raise ValueError(
-                    f"Stock insuficiente para medicamento {medicamento_id}"
+                if not lote:
+                    raise ValueError(
+                        f"Stock insuficiente para medicamento {medicamento_id}"
+                    )
+
+                cantidad_a_descontar = min(restante, lote.stock_actual)
+                self.db.execute(text("""
+                    UPDATE farm_lotes_inventario
+                    SET stock_actual = stock_actual - :cantidad
+                    WHERE id = :lote_id
+                """), {
+                    "cantidad": cantidad_a_descontar,
+                    "lote_id": lote.id
+                })
+
+                self._insertar_movimiento_venta(
+                    lote.id,
+                    cantidad_a_descontar,
+                    venta_id,
+                    datos_receta,
                 )
 
-            # Descontar stock
-            self.db.execute(text("""
-                UPDATE farm_lotes_inventario
-                SET stock_actual = stock_actual - :cantidad
-                WHERE id = :lote_id
-            """), {
-                "cantidad": cantidad_requerida,
-                "lote_id": lote.id
-            })
+                resultado.append({
+                    "lote_id": lote.id,
+                    "medicamento_id": medicamento_id,
+                    "cantidad_descontada": cantidad_a_descontar,
+                    "fecha_caducidad": str(lote.fecha_caducidad)
+                })
 
-            self._insertar_movimiento_venta(
-                lote.id,
-                cantidad_requerida,
-                venta_id,
-                datos_receta,
-            )
-
-            resultado.append({
-                "lote_id": lote.id,
-                "medicamento_id": medicamento_id,
-                "cantidad_descontada": cantidad_requerida,
-                "fecha_caducidad": str(lote.fecha_caducidad)
-            })
+                restante -= cantidad_a_descontar
 
         return resultado
 
