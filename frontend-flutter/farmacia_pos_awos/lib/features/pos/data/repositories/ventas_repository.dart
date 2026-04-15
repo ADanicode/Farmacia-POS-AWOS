@@ -104,7 +104,7 @@ class VentasRepository {
       payload['datosReceta'] = <String, dynamic>{
         'ciMedico': cedulaMedico,
         'nombreMedico': nombreMedico,
-        'fechaReceta': DateTime.now().toIso8601String(),
+        'fechaReceta': DateTime.now().toUtc().toIso8601String(),
       };
     }
 

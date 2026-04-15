@@ -50,7 +50,7 @@ export class VentasController {
         usuarioAuth.uid,
         usuarioAuth.email,
         usuarioAuth.nombre || 'Usuario',
-        usuarioAuth.role === 'cajero' ? RoleType.CAJERO : RoleType.VENDEDOR,
+        usuarioAuth.role === 'CAJERO' ? RoleType.CAJERO : RoleType.VENDEDOR,
         usuarioAuth.permisos || []
       );
 
