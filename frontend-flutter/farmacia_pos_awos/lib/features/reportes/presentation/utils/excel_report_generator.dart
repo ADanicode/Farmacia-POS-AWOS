@@ -493,7 +493,18 @@ class ExcelReportGenerator {
         : currentRow - 1;
     final String dailyTotalRange = 'E$dailyDataStart:E$dailyDataEnd';
 
-    // ── Sección 2: Estadísticas globales con fórmulas nativas ─────────────
+    final double maxVentaPeriodo = diasOrdenados.isNotEmpty
+        ? diasOrdenados.map((e) => e.total).reduce((a, b) => a > b ? a : b)
+        : 0.0;
+    final double minVentaPeriodo = diasOrdenados.isNotEmpty
+        ? diasOrdenados.map((e) => e.total).reduce((a, b) => a < b ? a : b)
+        : 0.0;
+    final double promedioDiarioVenta = diasOrdenados.isNotEmpty
+        ? diasOrdenados.map((e) => e.total).reduce((a, b) => a + b) /
+            diasOrdenados.length
+        : 0.0;
+
+    // ── Sección 2: Estadísticas globales con fórmulas nativas
     final int statsSection = currentRow + 2;
     final Range section2Lbl = sheet.getRangeByName(
       'A$statsSection:G$statsSection',
@@ -511,6 +522,8 @@ class ExcelReportGenerator {
       'Venta Minima del Periodo',
       'Promedio Diario de Ventas',
     ];
+    final String dailyTotalRange =
+        '\$E\$${dailyDataStart}:\$E\$${dailyDataEnd}';
     final List<String> statsFormulas = <String>[
       '=MAX($dailyTotalRange)',
       '=MIN($dailyTotalRange)',
@@ -550,13 +563,12 @@ class ExcelReportGenerator {
     section3Lbl.cellStyle.fontColor = '#880E4F';
     section3Lbl.cellStyle.hAlign = HAlignType.center;
 
-    // Rango de "Receta Retenida" en Hoja 2 para las fórmulas COUNTIF
     final int sheet2DataStart = 5;
     final int sheet2DataEnd = totalVentas == 0
         ? sheet2DataStart
         : sheet2DataStart + totalVentas - 1;
     final String recetaRange =
-        "'Datos Transaccionales'!H$sheet2DataStart:H$sheet2DataEnd";
+        "'Datos Transaccionales'!\$H\$${sheet2DataStart}:\$H\$${sheet2DataEnd}";
 
     // Fila: Total de ventas
     _writeAuditRow(
